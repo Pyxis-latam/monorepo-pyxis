@@ -85,9 +85,12 @@ export function GlobeExpansion() {
   const mountRef = useRef<HTMLDivElement>(null);
   const targetQuatRef = useRef(orientationFor(STEPS[0].lat, STEPS[0].lon));
   const stepRef = useRef(step);
-  stepRef.current = step;
   const reduceRef = useRef(shouldReduceMotion);
-  reduceRef.current = shouldReduceMotion;
+  // The render loop reads these refs, so keep them in sync after each commit.
+  useEffect(() => {
+    stepRef.current = step;
+    reduceRef.current = shouldReduceMotion;
+  }, [step, shouldReduceMotion]);
 
   // Overlay element refs (dot, line, card) per annotation.
   const annEls = useRef<

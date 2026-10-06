@@ -1,128 +1,52 @@
-# Pyxis Landing Page
+# monorepo-pyxis
 
-Landing page for Pyxis, a group with two divisions:
+Every Pyxis application lives here: our own sites and the apps we build for
+clients. One repository, npm workspaces for dependencies and
+[Turborepo](https://turborepo.com) for running tasks across apps.
 
-- **Pyxis Labs** — recomposes existing companies: makes them more efficient and
-  more powerful without growing or shrinking them. First case: a 100-person B2B
-  office-supplies distributor in Chile; next verticals are the retail niche,
-  then furniture and construction.
-- **Pyxis Ventures** — builds companies that run without people. The first is
-  **Hermes**, the "Zero Man Wholesaler": a distributor of inks, cartridges and
-  printers piloting in Chile and expanding country by country.
+## Layout
 
-## Page structure
+```
+apps/
+  landing/             @pyxis/landing — pyxis-latam.cl (Next.js)
+packages/
+  typescript-config/   @pyxis/typescript-config — shared tsconfig bases
+```
 
-`app/page.tsx` composes, in order: `Header` → `Hero` (umbrella statement) →
-`SocialProof` → `Divisions` (two cards linking to `#labs` / `#ventures`) →
-`Labs` (recomposition steps + growth timeline by vertical) → `Ventures` (Hermes
-intro + pillars) → `GlobeExpansion` (Hermes country map) → `Team` → `FinalCta` →
-`Footer`. All copy, in Spanish and English, lives in `lib/i18n/dictionary.ts`.
-`components/ui/StepGrid.tsx` and `components/ui/PhaseTimeline.tsx` are the
-shared primitives for the three-column steps and the animated timeline.
+- `apps/*` — deployable applications. One folder per app, one Vercel project per
+  app (its Root Directory is the app folder).
+- `packages/*` — code and config shared between apps. Apps depend on them by
+  name, e.g. `"@pyxis/typescript-config": "*"`.
 
-## Local development
+## Adding an app
+
+1. Create `apps/<name>/` (for a client app, prefix the client:
+   `apps/<client>-<app>/`).
+2. Name the package `@pyxis/<name>` and give it whichever of the `dev`, `build`,
+   `start`, `lint` and `test` scripts it needs — turbo picks them up.
+3. For a Next.js app, extend the shared config in its `tsconfig.json`:
+   `"extends": "@pyxis/typescript-config/nextjs.json"`, and add
+   `"@pyxis/typescript-config": "*"` to its `devDependencies`.
+4. Run `npm install` at the root.
+5. In Vercel, import the repository as a new project and set its Root Directory
+   to `apps/<name>`.
+
+## Commands
+
+Install once, at the root (Node 24+):
 
 ```bash
 npm install
-npm run dev
 ```
 
-Open http://localhost:3000.
-
-## Tests
+Run tasks for every app, or one app with `--filter`:
 
 ```bash
+npm run dev                             # every app
+npm run dev -- --filter=@pyxis/landing  # just the landing
+npm run build
+npm run lint
 npm test
 ```
 
-## Deploying to Vercel
-
-1. Push this repository to GitHub.
-2. In Vercel, click **New Project** and import the repository.
-3. Framework Preset is auto-detected as **Next.js** — no configuration needed.
-4. Click **Deploy**.
-
-The page is fully static (no environment variables, no API routes, no database) —
-the primary call to action is a `mailto:equipo@pyxis-latam.cl` link, so there is
-nothing to configure beyond connecting the repo.
-
-## Team photos and bios
-
-Founder photos live in `public/team/` (`vicente.jpg`, `felipe.jpg`) and are
-rendered with `next/image` in `components/Team.tsx`. To replace a photo, drop a
-new file with the same name.
-
-Clicking a founder's name expands a card with their bio and experience. That
-copy lives in `lib/i18n/dictionary.ts` under `team.members[*].bio` and
-`team.members[*].experiences`. The `experiences` entries are placeholders marked
-with a `// TODO` comment — replace them with the real roles from each LinkedIn
-profile (LinkedIn blocks automated scraping, so this step is manual).
-
-## Space / constellation theme
-
-Type: `Geist` (display and body), `Instrument Serif` italic for the one accented
-phrase in each headline (`components/ui/Emphasis.tsx`) and `Geist Mono` for the
-small labels. All three load through `next/font/google` in `app/layout.tsx`.
-
-- `components/PyxisCompass.tsx` — the animated Pyxis mark: a brass dial with a
-  settling north needle and the four stars of Pyxis (the constellation of the
-  mariner's compass). Below 48px it thickens its strokes and drops the
-  constellation lines; `app/icon.tsx` and `app/opengraph-image.tsx` carry static
-  versions of the same mark.
-- `components/PageBackdrop.tsx` — fixed layer behind the whole page: three
-  drifting nebula clouds (CSS, `app/globals.css`) plus the starfield.
-- `components/ParticleField.tsx` — DPR-aware starfield with depth: near stars are
-  larger, brighter, drift faster and parallax against the scroll; rare shooting
-  stars.
-- `components/ui/SpotlightCard.tsx` — the glass panel used by the division and
-  team cards: hairline border, top light catch and a brass spotlight that
-  follows the cursor.
-- `components/diagrams/Recomposition.tsx` — Labs figure: twelve nodes that
-  start tangled and settle around one hub when scrolled into view (same node
-  count before and after).
-- `components/diagrams/HermesLoop.tsx` — Ventures figure: a closed loop through
-  Compra → Venta → Despacho with one pulse of light running it, empty centre.
-- `components/GlobeSection.tsx` — placeholder that keeps the `#expansion`
-  anchor and only downloads three.js and the night texture when the visitor
-  scrolls within ~800px of the section.
-
-## Contact
-
-The primary call to action is `components/ui/ScheduleButton.tsx`, a link to
-Vicente's Cal.com page (`SCHEDULE_URL` in that file). The header's "Hablemos"
-is a real `mailto:` link whose plain click opens
-`components/ContactDialog.tsx` (state in `lib/contact/ContactContext.tsx`)
-with the calendar link, the address with a Copy button and a Gmail compose
-link, because `mailto:` alone does nothing on machines without a default
-mail client.
-
-## Labs content
-
-`components/LabsCase.tsx` is the anonymised case note (B2B office-supplies
-distributor). The four engagement stages (Auditoría, Diagnóstico y plan,
-Implementación, Postventa) and the case copy live in `lib/i18n/dictionary.ts`
-under `labs.steps` and `labs.case`.
-
-## Site plumbing
-
-`app/not-found.tsx` (branded 404), `app/icon.svg` + `app/icon.tsx` (favicon),
-`app/apple-icon.tsx` (home-screen icon), `app/robots.ts`, `app/sitemap.ts`
-and `components/OrganizationJsonLd.tsx` (schema.org Organization). The
-language choice persists in `localStorage` under `pyxis-lang`; the header
-highlights the section on screen via `lib/useActiveSection.ts`.
-
-## Globe
-
-- `components/GlobeExpansion.tsx` — a full-screen, photorealistic 3D night globe
-  (three.js + WebGL) that spins from Chile → Mexico → Brazil & Paraguay on its
-  own every six seconds, or when you press the arrows (which stops the
-  auto-advance). It shows vector **country borders** (the focused country is
-  highlighted in gold) and **callout labels** (a line linking each country to a
-  name card) that track the country as the globe rotates. Assets live in
-  `public/globe/`: `earth-night.jpg` (4096×2048 NASA Black Marble, via the
-  three-globe example assets) and `countries.geojson` (Natural Earth 110m).
-  Framing/rotation are tuned via the constants at the top of the component
-  (`FOV`, `CAMERA_Z`, `GLOBE_Y`, …); label offsets live in the `ANN` array. It
-  falls back gracefully (no crash) where WebGL is unavailable.
-
-All animations respect `prefers-reduced-motion`.
+Add a dependency to one app with `npm install <pkg> -w @pyxis/<name>`.

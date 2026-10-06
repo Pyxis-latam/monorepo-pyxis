@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import path from "path";
 
 describe("design tokens", () => {
-  const css = readFileSync(path.join(process.cwd(), "app/globals.css"), "utf-8");
+  const css = readFileSync(path.join(__dirname, "globals.css"), "utf-8");
 
   it("defines the Pyxis color palette (tinted near-black, not pure black)", () => {
     expect(css).toContain("--color-pyxis-bg: #07080b");
