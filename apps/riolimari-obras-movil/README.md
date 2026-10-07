@@ -107,9 +107,11 @@ raíz si hace falta sincronizar el lockfile.
 ## Producción
 
 La app no se despliega en Vercel: se compila con [EAS](https://docs.expo.dev/eas/) y se reparte
-como APK interno o por las tiendas. Nada de esto está configurado todavía en el repo (no hay
-`eas.json`), y requiere cuentas que no son parte del repo: una cuenta de **Expo** y, para las
-tiendas, de **Google Play** y **Apple Developer**.
+como APK interno o por las tiendas. Ya está enlazada al proyecto de Expo **`@pyxis-latam/rio-limari`**
+(`extra.eas.projectId` y `owner` en `app.json`; por eso el `slug` es `rio-limari`), con identificador
+**`cl.empresasriolimari.obras`** (Android e iOS) y `eas.json` con dos perfiles: `preview` (APK de
+distribución interna) y `production` (versión autoincremental, para tiendas). Las tiendas requieren
+cuentas que no son parte del repo: **Google Play** y **Apple Developer**.
 
 1. **Backend:** el Supabase de producción ya debe estar listo según la sección "Producción" de la
    [web](../riolimari-obras/README.md#producción) (migraciones aplicadas, registro abierto desactivado,
@@ -117,27 +119,24 @@ tiendas, de **Google Play** y **Apple Developer**.
 2. **Variables:** al compilar, `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` deben apuntar al
    Supabase de producción (la URL del proyecto y la anon key, no la `service_role`). Sin ellas la app falla
    apenas arranca (`lib/supabase.ts` lanza un error al cargar), así que un build sin variables no sirve.
-   - **Builds en la nube de EAS (lo normal):** define las dos como variables de entorno del proyecto en Expo,
-     para el entorno que use el perfil de build (en el dashboard de expo.dev o con `npx eas env:create`).
-     Es la vía principal: los archivos `.env*` de esta carpeta **no** llegan a EAS, porque están ignorados por
-     git (`.gitignore` de la raíz ignora `.env*`) y EAS Build no sube lo que git ignora.
+   - **Builds en la nube de EAS (lo normal):** ya están definidas como variables del proyecto en Expo para
+     los entornos `preview` y `production` (`npx eas env:list --environment production` para verlas). Los
+     archivos `.env*` de esta carpeta **no** llegan a EAS: están ignorados por git y EAS Build no sube lo que git ignora.
    - **Builds locales** (`eas build --local`, `expo run:*` en tu PC): sirve un archivo
      `apps/riolimari-obras-movil/.env` con esos dos valores. Sigue ignorado por git y **no** se sube a EAS. Ojo:
      `.env.local` tiene prioridad sobre `.env`, así que el de desarrollo (con la IP de tu red) no debe quedar
      ahí al compilar localmente.
-3. **Identificadores:** `app.json` todavía no define `android.package` ni `ios.bundleIdentifier`; hay que
-   elegirlos antes del primer build (después de publicar en una tienda ya no se pueden cambiar).
-4. **APK interno (Android):** con la cuenta de Expo, `npx eas login`, vincular el proyecto (`npx eas init`)
-   y crear `eas.json` con un perfil `preview` de distribución interna que genere un APK (ver la documentación
-   de EAS Build sobre `eas.json`). Luego:
+3. **APK interno (Android):** con sesión en EAS (`npx eas login`; en PowerShell usa `npx.cmd` si la
+   política de ejecución bloquea `npx`):
 
    ```bash
    cd apps/riolimari-obras-movil
    npx eas build -p android --profile preview
    ```
 
+   La primera vez EAS pide generar la llave de firma de Android (responde que sí y guárdala en EAS).
    EAS entrega un enlace para descargar e instalar el APK en los teléfonos del equipo.
-5. **Tiendas:** un build de producción (`eas build` con el perfil correspondiente) y `npx eas submit`
+4. **Tiendas:** un build de producción (`eas build` con el perfil correspondiente) y `npx eas submit`
    para subirlo a Google Play / App Store Connect, con las cuentas y fichas de cada tienda ya creadas.
-6. **Probar:** entrar con un usuario de terreno real (el código debe llegar por el SMTP de producción),
+5. **Probar:** entrar con un usuario de terreno real (el código debe llegar por el SMTP de producción),
    reportar avance con foto y comprobar que aparece en el feed del admin y en **Mis reportes**.
