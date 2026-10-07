@@ -10,7 +10,9 @@ export async function crearClienteServidor() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      // El segundo argumento (headers de caché) no se puede aplicar desde un Server Component: lo aplica el proxy.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setAll(cookiesToSet, _headers: Record<string, string>) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
