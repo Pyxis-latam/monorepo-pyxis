@@ -161,7 +161,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "obra_activa":
+            "aplicar_importacion":
+{ Args: { "p_archivo_path": string,"p_nombre": string,"p_obra_id": string,"p_partidas": Json }; Returns: string
+                           },
+"obra_activa":
 { Args: { "p_obra": string }; Returns: boolean
                            },
 "rol_actual":
