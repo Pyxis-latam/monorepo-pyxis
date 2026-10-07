@@ -95,6 +95,61 @@ describe("aplicar_importacion", () => {
     expect(imps).toEqual([{ filas: 2 }]);
   });
 
+  it("reimporta moviendo una hoja con reportes a otro capítulo y eliminando el capítulo anterior", async () => {
+    const admin = await crearUsuario("admin");
+    const { data: obraId } = await admin.cliente.rpc("aplicar_importacion", {
+      p_obra_id: nulo,
+      p_nombre: "Obra",
+      p_partidas: [partida("1", null, 0, null), partida("1.1", "1", 1), partida("2", null, 2, null)],
+      p_archivo_path: "a.xlsx",
+    });
+    const { data: hoja } = await adminServicio.from("partidas").select("id").eq("obra_id", obraId!).eq("codigo", "1.1").single();
+    const { data: reporte } = await adminServicio
+      .from("reportes")
+      .insert({ obra_id: obraId!, partida_id: hoja!.id, autor: admin.id, cantidad: 4 })
+      .select("id")
+      .single();
+
+    const { error } = await admin.cliente.rpc("aplicar_importacion", {
+      p_obra_id: obraId!,
+      p_nombre: nulo,
+      p_partidas: [partida("2", null, 0, null), partida("1.1", "2", 1)],
+      p_archivo_path: "b.xlsx",
+    });
+    expect(error).toBeNull();
+    const { data: partidas } = await adminServicio.from("partidas").select("id, codigo, parent_id").eq("obra_id", obraId!).order("orden");
+    expect(partidas!.map((p) => p.codigo)).toEqual(["2", "1.1"]);
+    expect(partidas![1]).toMatchObject({ id: hoja!.id, parent_id: partidas![0].id });
+    const { data: reportes } = await adminServicio.from("reportes").select("id").eq("partida_id", hoja!.id);
+    expect(reportes).toEqual([{ id: reporte!.id }]);
+  });
+
+  it("rechaza un codigo_padre que no viene en el archivo y no cambia nada", async () => {
+    const admin = await crearUsuario("admin");
+    const { data: obraId } = await admin.cliente.rpc("aplicar_importacion", {
+      p_obra_id: nulo,
+      p_nombre: "Obra",
+      p_partidas: [partida("1", null, 0, null), partida("1.1", "1", 1), partida("2", null, 2, null)],
+      p_archivo_path: "a.xlsx",
+    });
+    const { data: antes } = await adminServicio.from("partidas").select("id, codigo, parent_id, cantidad").eq("obra_id", obraId!).order("orden");
+
+    // "2" existe en la BD pero no viene en el archivo: sería eliminado y arrastraría a su hijo.
+    const { error } = await admin.cliente.rpc("aplicar_importacion", {
+      p_obra_id: obraId!,
+      p_nombre: nulo,
+      p_partidas: [partida("1.1", "2", 0, 99)],
+      p_archivo_path: "b.xlsx",
+    });
+    expect(error?.code).toBe("P0001");
+    expect(error?.message).toContain("1.1");
+    expect(error?.message).toContain("2");
+    const { data: despues } = await adminServicio.from("partidas").select("id, codigo, parent_id, cantidad").eq("obra_id", obraId!).order("orden");
+    expect(despues).toEqual(antes);
+    const { data: imps } = await adminServicio.from("importaciones").select("filas").eq("obra_id", obraId!);
+    expect(imps).toEqual([{ filas: 3 }]);
+  });
+
   it("solo un admin puede importar", async () => {
     const terreno = await crearUsuario("terreno");
     const { error } = await terreno.cliente.rpc("aplicar_importacion", {
