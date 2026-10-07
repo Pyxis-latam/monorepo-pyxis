@@ -31,7 +31,8 @@ export function parseFecha(v: unknown): Resultado<string | null> {
   }
   if (typeof v === "number" && Number.isFinite(v)) {
     if (v < 1) return { ok: false };
-    const valor = aIso(new Date(EPOCA_EXCEL + Math.round(v) * DIA_MS));
+    // La parte decimal es la hora del día: se trunca (redondear pasaría las 12:00 en adelante al día siguiente).
+    const valor = aIso(new Date(EPOCA_EXCEL + Math.floor(v) * DIA_MS));
     return valor ? { ok: true, valor } : { ok: false };
   }
   if (typeof v === "string") {

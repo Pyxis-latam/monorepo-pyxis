@@ -15,6 +15,12 @@ describe("parseFecha", () => {
     expect(parseFecha(46329)).toEqual({ ok: true, valor: "2026-11-03" });
   });
 
+  it("un serial con hora se queda en su día (la fracción es la hora, no se redondea)", () => {
+    expect(parseFecha(46329.75)).toEqual({ ok: true, valor: "2026-11-03" });
+    expect(parseFecha(46329.5)).toEqual({ ok: true, valor: "2026-11-03" });
+    expect(parseFecha(46329.25)).toEqual({ ok: true, valor: "2026-11-03" });
+  });
+
   it("vacío es null; fechas imposibles son error", () => {
     expect(parseFecha(null)).toEqual({ ok: true, valor: null });
     expect(parseFecha("31-02-2026")).toEqual({ ok: false });
