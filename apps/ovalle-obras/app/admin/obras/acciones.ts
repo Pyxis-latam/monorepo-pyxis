@@ -7,6 +7,7 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { leerFilas } from "@/lib/excel/leer";
 import { validarFilas, type ErrorFila, type PartidaImportada } from "@/lib/excel/validar";
 import { calcularDiferencias, type Diferencias } from "@/lib/excel/diferencias";
+import { traerTodo } from "@pyxis/ovalle-core/datos/paginar";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -25,17 +26,23 @@ async function procesar(formData: FormData) {
 
 async function diferenciasCon(obraId: string, partidas: PartidaImportada[]): Promise<Diferencias> {
   const supabase = await crearClienteServidor();
-  const [{ data: existentes, error }, { data: reportes }] = await Promise.all([
-    supabase
-      .from("partidas")
-      .select("id, codigo, descripcion, unidad, cantidad, precio_unitario, fecha_inicio, fecha_fin")
-      .eq("obra_id", obraId),
-    supabase.from("reportes").select("partida_id").eq("obra_id", obraId),
+  // PostgREST devuelve a lo más 1000 filas por consulta (y reportes tiene una fila por reporte): se pagina.
+  const [existentes, reportes] = await Promise.all([
+    traerTodo((desde, hasta) =>
+      supabase
+        .from("partidas")
+        .select("id, codigo, descripcion, unidad, cantidad, precio_unitario, fecha_inicio, fecha_fin")
+        .eq("obra_id", obraId)
+        .order("id")
+        .range(desde, hasta),
+    ),
+    traerTodo((desde, hasta) =>
+      supabase.from("reportes").select("partida_id").eq("obra_id", obraId).order("id").range(desde, hasta),
+    ),
   ]);
-  if (error) throw error;
-  const conReportes = new Set((reportes ?? []).map((r) => r.partida_id));
+  const conReportes = new Set(reportes.map((r) => r.partida_id));
   return calcularDiferencias(
-    (existentes ?? []).map((p) => ({
+    existentes.map((p) => ({
       codigo: p.codigo,
       descripcion: p.descripcion,
       unidad: p.unidad,
