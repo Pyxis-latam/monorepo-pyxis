@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obra-bg: #f6f5f2;
+  --color-obra-fg: #1d1d1b;
+  --color-obra-accent: #d9622b;
+  --color-obra-ok: #2f8f46;
+  --color-obra-warn: #c0392b;
+  --color-obra-line: #e2e0da;
+}
+
+body {
+  background: var(--color-obra-bg);
+  color: var(--color-obra-fg);
+}
