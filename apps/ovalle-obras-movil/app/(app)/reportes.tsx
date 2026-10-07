@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from "reac
 import { cargarFeed, type ReporteFeed } from "@pyxis/ovalle-core/datos/feed";
 import { formatoCantidad, formatoMomento } from "@pyxis/ovalle-core/formato";
 import { Boton } from "@/components/Boton";
+import { urlsDeFotos } from "@/lib/fotos-firmadas";
 import { useSesion } from "@/lib/sesion";
 import { supabase } from "@/lib/supabase";
 import { colores } from "@/lib/tema";
@@ -45,11 +46,16 @@ export default function MisReportes() {
     if (!autorId) return;
     const numero = ++peticion.current;
     try {
-      // Con las URL firmadas por defecto: son las que Image necesita en el teléfono.
-      const reportes = await cargarFeed(supabase, { autorId }, MAXIMO_REPORTES);
+      // Sin firmar en el core: firmar en cada carga daría URL nuevas y el teléfono volvería a bajar
+      // todas las fotos. `urlsDeFotos` reutiliza las firmadas mientras sigan vigentes.
+      const reportes = await cargarFeed(supabase, { autorId }, MAXIMO_REPORTES, { firmarFotos: false });
+      const urls = await urlsDeFotos(reportes.flatMap((r) => (r.fotoPath ? [r.fotoPath] : [])));
       if (numero !== peticion.current) return;
       setActualizacionFallida(false);
-      setEstado({ tipo: "ok", reportes });
+      setEstado({
+        tipo: "ok",
+        reportes: reportes.map((r) => ({ ...r, fotoUrl: r.fotoPath ? (urls.get(r.fotoPath) ?? null) : null })),
+      });
     } catch {
       if (numero !== peticion.current) return;
       // Si ya había una lista, un fallo al actualizar no la borra: solo se avisa.
@@ -58,8 +64,8 @@ export default function MisReportes() {
     }
   }, [autorId]);
 
-  // Las URL firmadas de las fotos duran 1 hora: al enfocar la pestaña se piden de nuevo, para que
-  // una pantalla que quedó abierta mucho rato no muestre fotos rotas.
+  // Al enfocar la pestaña se recarga la lista. Las URL firmadas de las fotos duran 1 hora: se reutilizan
+  // mientras les queden más de 5 minutos y si no se firman de nuevo, para que no queden fotos rotas.
   useFocusEffect(
     useCallback(() => {
       void cargar();
