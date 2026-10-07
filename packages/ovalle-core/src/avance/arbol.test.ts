@@ -40,6 +40,13 @@ describe("construirArbol", () => {
     expect(n.montoEjecutado).toBe(1000);
   });
 
+  it("una hoja reportada completa con error de punto flotante queda terminada", () => {
+    const ej = 0.1 + 0.7; // 0.7999999999999999
+    const [n] = aplanar(construirArbol([p("h", "1", null, hoja(0.8, 1000))], new Map([["h", ej]]), "2026-11-06"));
+    expect(ej / 0.8).toBeLessThan(1);
+    expect(n.estado).toBe("terminada");
+  });
+
   it("los capítulos suman montos y ponderan el % por monto", () => {
     expect(raices[0]).toMatchObject({ esHoja: false, montoPresupuestado: 400000, montoEjecutado: 350000, porcentaje: 0.875 });
   });

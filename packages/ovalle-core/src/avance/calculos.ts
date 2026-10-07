@@ -10,7 +10,7 @@ export function porcentajeEsperado(inicio: string | null, fin: string | null, ho
 }
 
 export function estadoHoja(porcentaje: number, esperado: number | null): Estado {
-  if (porcentaje >= 1) return "terminada";
+  if (porcentaje + 1e-9 >= 1) return "terminada";
   if (esperado === null) return "sin_fechas";
   return porcentaje + 1e-9 < esperado ? "atrasada" : "al_dia";
 }

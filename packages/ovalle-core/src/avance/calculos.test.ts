@@ -24,4 +24,6 @@ describe("estadoHoja", () => {
   it("atrasada si va bajo lo esperado", () => expect(estadoHoja(0.3, 0.5)).toBe("atrasada"));
   it("al día si iguala o supera lo esperado", () => expect(estadoHoja(0.5, 0.5)).toBe("al_dia"));
   it("sin fechas si no hay esperado y no terminó", () => expect(estadoHoja(0.2, null)).toBe("sin_fechas"));
+  it("terminada tolera el error de punto flotante justo bajo 100 %", () =>
+    expect(estadoHoja(0.9999999999999999, 0.5)).toBe("terminada"));
 });
