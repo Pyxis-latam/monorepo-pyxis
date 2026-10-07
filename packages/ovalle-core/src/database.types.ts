@@ -161,7 +161,12 @@ isOneToOne: false
                 }
           }
           Functions: {
-            [_ in never]: never
+            "obra_activa":
+{ Args: { "p_obra": string }; Returns: boolean
+                           },
+"rol_actual":
+{ Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol_usuario"]
+                           }
           }
           Enums: {
             "estado_obra": "activa"|"cerrada","rol_usuario": "admin"|"terreno"
