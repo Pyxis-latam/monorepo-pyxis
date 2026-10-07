@@ -1,6 +1,7 @@
 export type Resultado<T> = { ok: true; valor: T } | { ok: false };
 
-const MILES_CON_PUNTO = /^-?\d{1,3}(\.\d{3})+$/;
+// El primer grupo no puede partir en 0: "0.125" es un decimal, no 125 (nadie escribe "0.125" como miles).
+const MILES_CON_PUNTO = /^-?[1-9]\d{0,2}(\.\d{3})+$/;
 
 /** Lee números escritos a la chilena ("4.200", "1.150,5", "$ 12.000"). */
 export function parseNumeroCL(v: unknown): Resultado<number | null> {

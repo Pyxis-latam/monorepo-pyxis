@@ -2,11 +2,22 @@ import type { Resultado } from "./numeros";
 
 const DIA_MS = 86_400_000;
 const EPOCA_EXCEL = Date.UTC(1899, 11, 30);
+/** Rango de años aceptado: fuera de él es un error de tipeo (o un serial basura), no una fecha de obra. */
+const ANIO_MIN = 1900;
+const ANIO_MAX = 2200;
+
+/** "YYYY-MM-DD" de una fecha UTC, o null si es inválida o cae fuera de 1900–2200 (nunca lanza). */
+function aIso(fecha: Date): string | null {
+  if (Number.isNaN(fecha.getTime())) return null;
+  const anio = fecha.getUTCFullYear();
+  if (anio < ANIO_MIN || anio > ANIO_MAX) return null;
+  return fecha.toISOString().slice(0, 10);
+}
 
 function iso(a: number, m: number, d: number): string | null {
   const fecha = new Date(Date.UTC(a, m - 1, d));
   if (fecha.getUTCFullYear() !== a || fecha.getUTCMonth() !== m - 1 || fecha.getUTCDate() !== d) return null;
-  return fecha.toISOString().slice(0, 10);
+  return aIso(fecha);
 }
 
 /** Fecha de una celda Excel → "YYYY-MM-DD". */
@@ -15,10 +26,13 @@ export function parseFecha(v: unknown): Resultado<string | null> {
     return { ok: true, valor: null };
   }
   if (v instanceof Date) {
-    return Number.isNaN(v.getTime()) ? { ok: false } : { ok: true, valor: v.toISOString().slice(0, 10) };
+    const valor = aIso(v);
+    return valor ? { ok: true, valor } : { ok: false };
   }
   if (typeof v === "number" && Number.isFinite(v)) {
-    return { ok: true, valor: new Date(EPOCA_EXCEL + Math.round(v) * DIA_MS).toISOString().slice(0, 10) };
+    if (v < 1) return { ok: false };
+    const valor = aIso(new Date(EPOCA_EXCEL + Math.round(v) * DIA_MS));
+    return valor ? { ok: true, valor } : { ok: false };
   }
   if (typeof v === "string") {
     const m = v.trim().match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);

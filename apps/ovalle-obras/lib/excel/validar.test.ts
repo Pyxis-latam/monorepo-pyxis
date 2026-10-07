@@ -73,6 +73,26 @@ describe("validarFilas", () => {
     ]);
   });
 
+  it("rechaza el código guardado como número en Excel", () => {
+    const r = validarFilas([fila(2, { codigo: "1.1", codigoNumerico: true, descripcion: "Capítulo" })]);
+    expect(r.partidas).toEqual([]);
+    expect(r.errores).toEqual([
+      { fila: 2, mensaje: "Código guardado como número; formatee la columna Código como texto." },
+    ]);
+  });
+
+  it("trata las celdas con error de Excel como cantidad inválida, no como capítulo", () => {
+    const r = validarFilas([
+      fila(2, { codigo: "1", descripcion: "Cap" }),
+      fila(3, { codigo: "1.1", descripcion: "Div cero", unidad: "m2", cantidad: "#DIV/0!", precio_unitario: 1 }),
+      fila(4, { codigo: "1.2", descripcion: "Sin valor", unidad: "m2", cantidad: "#SIN_VALOR", precio_unitario: 1 }),
+    ]);
+    expect(r.errores).toEqual([
+      { fila: 3, mensaje: "Cantidad no es un número." },
+      { fila: 4, mensaje: "Cantidad no es un número." },
+    ]);
+  });
+
   it("exige al menos una fila", () => {
     expect(validarFilas([]).errores).toEqual([{ fila: 1, mensaje: "El archivo no tiene partidas." }]);
   });

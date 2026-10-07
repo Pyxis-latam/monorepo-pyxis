@@ -11,8 +11,16 @@ describe("parseNumeroCL", () => {
     ["0,75", 0.75],
     ["  300 ", 300],
     ["1234.5", 1234.5],
+    ["1.234.567", 1234567],
+    ["10.500", 10500],
   ])("lee %p como %p", (entrada, esperado) => {
     expect(parseNumeroCL(entrada)).toEqual({ ok: true, valor: esperado });
+  });
+
+  it("no toma un grupo que parte en 0 como miles (0.125 es un decimal)", () => {
+    expect(parseNumeroCL("0.125")).toEqual({ ok: true, valor: 0.125 });
+    expect(parseNumeroCL("0.001")).toEqual({ ok: true, valor: 0.001 });
+    expect(parseNumeroCL("-0.125")).toEqual({ ok: true, valor: -0.125 });
   });
 
   it("trata vacío como null", () => {

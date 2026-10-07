@@ -39,6 +39,7 @@ export function validarFilas(filas: FilaCruda[]): { partidas: PartidaImportada[]
   filas.forEach((f, i) => {
     const error = (mensaje: string) => errores.push({ fila: f.fila, mensaje });
     const codigo = f.codigo.trim();
+    if (f.codigoNumerico) return error("Código guardado como número; formatee la columna Código como texto.");
     if (!CODIGO.test(codigo)) return error("Código inválido: use números separados por puntos (ej. 1.2.3).");
     const previa = filaPorCodigo.get(codigo);
     if (previa !== undefined) return error(`Código ${codigo} repetido (ya está en la fila ${previa}).`);

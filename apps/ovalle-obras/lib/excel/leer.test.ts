@@ -2,12 +2,13 @@
 import ExcelJS from "exceljs";
 import { leerFilas } from "./leer";
 import { construirPlantilla } from "./plantilla";
+import { validarFilas } from "./validar";
 
-async function libro(filas: unknown[][], formatoCodigoTexto = false): Promise<ArrayBuffer> {
+async function libro(filas: unknown[][], formatoCodigo?: string): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
   const hoja = wb.addWorksheet("Presupuesto");
   filas.forEach((f) => hoja.addRow(f));
-  if (formatoCodigoTexto) hoja.getColumn(1).numFmt = "@";
+  if (formatoCodigo) hoja.getColumn(1).numFmt = formatoCodigo;
   const buf = await wb.xlsx.writeBuffer();
   return buf as ArrayBuffer;
 }
@@ -36,9 +37,48 @@ describe("leerFilas", () => {
   });
 
   it("toma el código como texto visible, no como número (1.10 ≠ 1.1)", async () => {
-    const r = await leerFilas(await libro([ENCABEZADOS, ["1.10", "Partida diez", "m2", 1, 1, null, null]], true));
+    const r = await leerFilas(await libro([ENCABEZADOS, ["1.10", "Partida diez", "m2", 1, 1, null, null]], "@"));
     if (!r.ok) throw new Error(r.error);
     expect(r.filas[0].codigo).toBe("1.10");
+    expect(r.filas[0].codigoNumerico).toBe(false);
+  });
+
+  it("marca el código guardado como número: 1.1 con formato 0.00 se ve 1.10 pero se lee 1.1", async () => {
+    const r = await leerFilas(
+      await libro(
+        [
+          ENCABEZADOS,
+          [1.1, "Partida", "m2", 1, 1, null, null],
+          [2, "Capítulo entero", null, null, null, null, null],
+        ],
+        "0.00",
+      ),
+    );
+    if (!r.ok) throw new Error(r.error);
+    expect(r.filas[0]).toMatchObject({ codigo: "1.1", codigoNumerico: true });
+    // Un entero no es ambiguo: 2 sigue siendo "2".
+    expect(r.filas[1]).toMatchObject({ codigo: "2", codigoNumerico: false });
+    expect(validarFilas(r.filas).errores).toEqual([
+      { fila: 2, mensaje: "Código guardado como número; formatee la columna Código como texto." },
+    ]);
+  });
+
+  it("no convierte en vacío una celda con error ni una fórmula sin resultado guardado", async () => {
+    const r = await leerFilas(
+      await libro([
+        ENCABEZADOS,
+        ["4", "Div cero", "m2", { formula: "1/0", result: { error: "#DIV/0!" } }, 1, null, null],
+        ["5", "Sin valor", "m2", { formula: "2*3" }, 1, null, null],
+        ["6", "Error directo", "m2", { error: "#N/A" }, 1, null, null],
+      ]),
+    );
+    if (!r.ok) throw new Error(r.error);
+    expect(r.filas.map((f) => f.cantidad)).toEqual(["#DIV/0!", "#SIN_VALOR", "#N/A"]);
+    expect(validarFilas(r.filas).errores.map((e) => e.mensaje)).toEqual([
+      "Cantidad no es un número.",
+      "Cantidad no es un número.",
+      "Cantidad no es un número.",
+    ]);
   });
 
   it("resuelve fórmulas y texto enriquecido; salta filas vacías", async () => {

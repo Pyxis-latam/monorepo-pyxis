@@ -20,6 +20,23 @@ describe("parseFecha", () => {
     expect(parseFecha("31-02-2026")).toEqual({ ok: false });
     expect(parseFecha("mañana")).toEqual({ ok: false });
   });
+
+  it("rechaza fechas fuera de 1900-2200 sin lanzar excepciones", () => {
+    expect(parseFecha(2958466)).toEqual({ ok: false }); // 31-12-9999 en Excel
+    expect(parseFecha(1e9)).toEqual({ ok: false });
+    expect(parseFecha(new Date(Date.UTC(12026, 0, 1)))).toEqual({ ok: false });
+    expect(parseFecha(new Date(Date.UTC(1850, 0, 1)))).toEqual({ ok: false });
+    expect(parseFecha("01-01-1850")).toEqual({ ok: false });
+    expect(parseFecha("01-01-2201")).toEqual({ ok: false });
+  });
+
+  it("rechaza seriales menores que 1 y acepta los extremos del rango", () => {
+    expect(parseFecha(0)).toEqual({ ok: false });
+    expect(parseFecha(-1)).toEqual({ ok: false });
+    expect(parseFecha("01-01-1900")).toEqual({ ok: true, valor: "1900-01-01" });
+    expect(parseFecha("31-12-2200")).toEqual({ ok: true, valor: "2200-12-31" });
+    expect(parseFecha(new Date(Date.UTC(2200, 11, 31)))).toEqual({ ok: true, valor: "2200-12-31" });
+  });
 });
 
 describe("hoyEnChile", () => {
