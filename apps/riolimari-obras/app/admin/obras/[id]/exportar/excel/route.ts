@@ -1,0 +1,22 @@
+import { notFound } from "next/navigation";
+import { exigirRol } from "@/lib/auth/sesion";
+import { cargarAvanceObra } from "@pyxis/riolimari-core/datos/obra";
+import { construirExcelAvance } from "@/lib/exportar/excel";
+import { hoyEnChile } from "@pyxis/riolimari-core/fechas";
+import { slug } from "@pyxis/riolimari-core/formato";
+import { crearClienteServidor } from "@/lib/supabase/servidor";
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  await exigirRol("admin");
+  const { id } = await params;
+  const hoy = hoyEnChile();
+  const datos = await cargarAvanceObra(await crearClienteServidor(), id, hoy);
+  if (!datos) notFound();
+  const archivo = await construirExcelAvance({ ...datos, hoy });
+  return new Response(new Uint8Array(archivo), {
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="avance-${slug(datos.obra.nombre)}-${hoy}.xlsx"`,
+    },
+  });
+}

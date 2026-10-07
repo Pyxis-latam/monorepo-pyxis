@@ -1,3 +1,5 @@
+> **Nota:** el 2026-10-07 la app se renombró a "Río Limarí Obras" (`apps/riolimari-obras`, `apps/riolimari-obras-movil`, `packages/riolimari-core`). Este documento es un registro histórico y conserva los nombres originales.
+
 # Ovalle Obras — registro de ejecución
 
 Registro de la ejecución del plan `2026-10-06-ovalle-obras.md`: decisiones tomadas (líneas `Ruling:`), hallazgos menores diferidos (`minor (deferred)`) y el resultado de cada tarea y su revisión. Los menores diferidos son el backlog sugerido para la siguiente iteración.

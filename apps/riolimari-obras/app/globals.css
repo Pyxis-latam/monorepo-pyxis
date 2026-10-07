@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Colores de Río Limarí (sitio del cliente). Su verde #4FA700 es solo decorativo: sobre blanco no
+   alcanza el contraste para texto, por eso no está aquí. */
+@theme {
+  --color-obra-bg: #f6f5f2;
+  --color-obra-fg: #1d1d1b;
+  /* Azul petróleo: botones, barras y encabezados (texto blanco encima: ~9:1). */
+  --color-obra-accent: #004D69;
+  /* Hover / presionado de lo que usa obra-accent. */
+  --color-obra-accent-strong: #002735;
+  --color-obra-secondary: #477B8E;
+  --color-obra-ok: #2f8f46;
+  --color-obra-warn: #c0392b;
+  --color-obra-line: #e2e0da;
+}
+
+body {
+  background: var(--color-obra-bg);
+  color: var(--color-obra-fg);
+}
