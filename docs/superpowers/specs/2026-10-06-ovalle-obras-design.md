@@ -1,3 +1,5 @@
+> **Nota:** el 2026-10-07 la app se renombró a "Río Limarí Obras" (`apps/riolimari-obras`, `apps/riolimari-obras-movil`, `packages/riolimari-core`). Este documento es un registro histórico y conserva los nombres originales.
+
 # Ovalle Obras — diseño (V1)
 
 Fecha: 2026-10-06 · Cliente: Constructora Ovalle · App: `apps/ovalle-obras` (`@pyxis/ovalle-obras`)

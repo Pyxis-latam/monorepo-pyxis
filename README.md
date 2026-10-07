@@ -8,12 +8,12 @@ clients. One repository, npm workspaces for dependencies and
 
 ```
 apps/
-  landing/             @pyxis/landing — pyxis-latam.cl (Next.js)
-  ovalle-obras/        @pyxis/ovalle-obras — avance de obra, Constructora Ovalle (Next.js + Supabase)
-  ovalle-obras-movil/  @pyxis/ovalle-obras-movil — app de terreno, Constructora Ovalle (Expo)
+  landing/                @pyxis/landing — pyxis-latam.cl (Next.js)
+  riolimari-obras/        @pyxis/riolimari-obras — avance de obra, Constructora Ovalle (Next.js + Supabase)
+  riolimari-obras-movil/  @pyxis/riolimari-obras-movil — app de terreno, Constructora Ovalle (Expo)
 packages/
-  ovalle-core/         @pyxis/ovalle-core — lógica de dominio compartida (web y app móvil)
-  typescript-config/   @pyxis/typescript-config — shared tsconfig bases
+  riolimari-core/         @pyxis/riolimari-core — lógica de dominio compartida (web y app móvil)
+  typescript-config/      @pyxis/typescript-config — shared tsconfig bases
 ```
 
 - `apps/*` — deployable applications. One folder per app, one Vercel project per
