@@ -21,7 +21,8 @@ const pluginSplash = () => {
 
 describe("app.json", () => {
   it("usa el nombre de Río Limarí", () => {
-    expect(expo).toMatchObject({ name: "Río Limarí Obras", slug: "riolimari-obras", scheme: "riolimariobras" });
+    // El slug lo fija el proyecto de Expo (@pyxis-latam/rio-limari).
+    expect(expo).toMatchObject({ name: "Río Limarí Obras", slug: "rio-limari", scheme: "riolimariobras" });
     const picker = expo.plugins.find((p: unknown) => Array.isArray(p) && p[0] === "expo-image-picker")[1];
     expect(picker.cameraPermission).toMatch(/^Río Limarí Obras /);
     expect(picker.photosPermission).toMatch(/^Río Limarí Obras /);
@@ -49,6 +50,13 @@ describe("app.json", () => {
   it("declara un favicon", () => {
     expect(expo.web.favicon).toBe("./assets/favicon.png");
     expect(existsSync(path.join(raiz, expo.web.favicon))).toBe(true);
+  });
+
+  it("está enlazada al proyecto de Expo y tiene identificadores de tienda", () => {
+    expect(expo.owner).toBe("pyxis-latam");
+    expect(expo.extra.eas.projectId).toBe("6b84fba0-6334-4cbb-9254-88e2f8f50636");
+    expect(expo.android.package).toBe("cl.empresasriolimari.obras");
+    expect(expo.ios.bundleIdentifier).toBe("cl.empresasriolimari.obras");
   });
 
   it("no deja imágenes de la plantilla sin usar en assets/", () => {

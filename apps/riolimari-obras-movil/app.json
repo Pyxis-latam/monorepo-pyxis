@@ -1,16 +1,18 @@
 {
   "expo": {
     "name": "Río Limarí Obras",
-    "slug": "riolimari-obras",
+    "slug": "rio-limari",
     "scheme": "riolimariobras",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "cl.empresasriolimari.obras"
     },
     "android": {
+      "package": "cl.empresasriolimari.obras",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/adaptive-icon.png",
@@ -41,6 +43,13 @@
           "backgroundColor": "#004D69"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6b84fba0-6334-4cbb-9254-88e2f8f50636"
+      }
+    },
+    "owner": "pyxis-latam"
   }
 }
