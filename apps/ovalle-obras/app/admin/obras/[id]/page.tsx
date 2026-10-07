@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Gantt } from "@/components/dashboard/Gantt";
 import { Indicadores } from "@/components/dashboard/Indicadores";
 import { Pestanas, type Vista } from "@/components/dashboard/Pestanas";
 import { TablaAvance } from "@/components/dashboard/TablaAvance";
@@ -47,6 +48,7 @@ export default async function DashboardObra({
       <Indicadores resumen={resumen} />
       <Pestanas obraId={id} vista={vista} filtro={filtro} />
       {vista === "tabla" && <TablaAvance raices={filtradas} />}
+      {vista === "gantt" && <Gantt raices={filtradas} hoy={hoy} />}
     </div>
   );
 }
