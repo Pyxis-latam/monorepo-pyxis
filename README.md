@@ -9,7 +9,9 @@ clients. One repository, npm workspaces for dependencies and
 ```
 apps/
   landing/             @pyxis/landing — pyxis-latam.cl (Next.js)
+  ovalle-obras/        @pyxis/ovalle-obras — avance de obra, Constructora Ovalle (Next.js + Supabase)
 packages/
+  ovalle-core/         @pyxis/ovalle-core — lógica de dominio compartida (web y app móvil)
   typescript-config/   @pyxis/typescript-config — shared tsconfig bases
 ```
 
