@@ -86,9 +86,20 @@ describe("seguridad de datos", () => {
 
   it("terreno no ve importaciones ni otros perfiles", async () => {
     const terreno = await crearUsuario("terreno");
-    await crearUsuario("admin");
-    const { data: imps } = await terreno.cliente.from("importaciones").select("id");
+    const admin = await crearUsuario("admin");
+    const { obraId } = await crearObraConPartidas();
+    const { error: errorImportacion } = await adminServicio
+      .from("importaciones")
+      .insert({ obra_id: obraId, archivo_path: "x.xlsx", filas: 1 });
+    expect(errorImportacion).toBeNull();
+
+    // Control positivo: la fila existe y el admin la ve.
+    const { data: delAdmin } = await admin.cliente.from("importaciones").select("id").eq("obra_id", obraId);
+    expect(delAdmin).toHaveLength(1);
+    // terreno no ve nada de ella.
+    const { data: imps } = await terreno.cliente.from("importaciones").select("id").eq("obra_id", obraId);
     expect(imps).toEqual([]);
+
     const { data: perfiles } = await terreno.cliente.from("perfiles").select("id");
     expect(perfiles).toEqual([{ id: terreno.id }]);
   });
