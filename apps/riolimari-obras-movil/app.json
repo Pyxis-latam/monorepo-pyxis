@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Ovalle Obras",
+    "name": "Río Limarí Obras",
     "slug": "riolimari-obras",
     "scheme": "riolimariobras",
     "version": "1.0.0",
@@ -25,8 +25,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Ovalle Obras usa la cámara para adjuntar fotos a los reportes de avance.",
-          "photosPermission": "Ovalle Obras usa tus fotos para adjuntarlas a los reportes de avance.",
+          "cameraPermission": "Río Limarí Obras usa la cámara para adjuntar fotos a los reportes de avance.",
+          "photosPermission": "Río Limarí Obras usa tus fotos para adjuntarlas a los reportes de avance.",
           "microphonePermission": false
         }
       ]

@@ -253,7 +253,7 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.magic_link]
-subject = "Tu código de ingreso a Ovalle Obras"
+subject = "Tu código de ingreso a Río Limarí Obras"
 content_path = "./supabase/templates/codigo.html"
 
 # Uncomment to customize notification email template

@@ -14,7 +14,7 @@ export default async function Obras() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Obras</h1>
-        <Link href="/admin/obras/nueva" className="rounded bg-obra-accent px-4 py-2 font-semibold text-white">Nueva obra</Link>
+        <Link href="/admin/obras/nueva" className="rounded bg-obra-accent px-4 py-2 font-semibold text-white hover:bg-obra-accent-strong active:bg-obra-accent-strong">Nueva obra</Link>
       </div>
       {(obras ?? []).length === 0 ? (
         <p>Aún no hay obras. Crea la primera subiendo su Excel de presupuesto.</p>

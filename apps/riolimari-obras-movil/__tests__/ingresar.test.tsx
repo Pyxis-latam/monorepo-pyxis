@@ -27,6 +27,16 @@ async function pedirCodigo(user: ReturnType<typeof userEvent.setup>) {
   await user.press(screen.getByRole("button", { name: "Enviarme un código" }));
 }
 
+it("muestra el logo de Río Limarí sobre el color primario y el nombre de la app", async () => {
+  await render(<Ingresar />);
+
+  const logo = screen.getByRole("image", { name: "Empresas Río Limarí" });
+  expect(logo.props.source).toBeTruthy();
+  // El logo es blanco: la zona que lo contiene lleva el color primario.
+  expect(screen.getByTestId("banda-marca")).toHaveStyle({ backgroundColor: "#004D69" });
+  expect(screen.getByRole("header", { name: "Río Limarí Obras" })).toBeOnTheScreen();
+});
+
 it("pide el código con el email en minúsculas y sin espacios, sin crear usuarios", async () => {
   const user = userEvent.setup();
   await pedirCodigo(user);

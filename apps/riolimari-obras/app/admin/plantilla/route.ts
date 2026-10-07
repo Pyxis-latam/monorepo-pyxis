@@ -7,7 +7,7 @@ export async function GET() {
   return new Response(new Uint8Array(archivo), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="plantilla-presupuesto-ovalle.xlsx"',
+      "Content-Disposition": 'attachment; filename="plantilla-presupuesto-riolimari.xlsx"',
     },
   });
 }

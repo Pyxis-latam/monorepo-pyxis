@@ -1,8 +1,8 @@
-# Ovalle Obras (`@pyxis/riolimari-obras`)
+# Río Limarí Obras (`@pyxis/riolimari-obras`)
 
-Avance de obra para Constructora Ovalle. El admin carga el presupuesto/programación
-de una obra desde Excel; el personal de terreno reporta avance desde el celular
-(cantidad o %, foto y comentario opcionales); el admin ve tabla plan vs real,
+Avance de obra para Constructora e Inmobiliaria Río Limarí. El admin carga el
+presupuesto/programación de una obra desde Excel; el personal de terreno reporta avance desde
+el celular (cantidad o %, foto y comentario opcionales); el admin ve tabla plan vs real,
 Gantt, feed en vivo, avance valorizado y exporta a Excel/PDF.
 
 Diseño: [`docs/superpowers/specs/2026-10-06-ovalle-obras-design.md`](../../docs/superpowers/specs/2026-10-06-ovalle-obras-design.md).
@@ -144,7 +144,7 @@ esta web. Para probarla en local (Expo Go, Supabase local) y para compilarla, mi
    - Desactivar "Allow new users to sign up". El proveedor Email debe seguir **activado**:
      apagarlo deshabilita también el ingreso por código ("Email logins are disabled").
    - Plantilla "Magic Link": usar el contenido de `supabase/templates/codigo.html`
-     (debe incluir `{{ .Token }}`) y el asunto "Tu código de ingreso a Ovalle Obras".
+     (debe incluir `{{ .Token }}`) y el asunto "Tu código de ingreso a Río Limarí Obras".
      Es la plantilla que Supabase usa para el código de ingreso de un usuario existente.
    - Largo del código de email: 6 (la pantalla de ingreso dice "código de 6 dígitos") y
      vencimiento de 3600 s (la plantilla dice "Vence en 1 hora"), igual que `supabase/config.toml`.

@@ -2,7 +2,8 @@
 export const colores = {
   fondo: "#f6f5f2",
   texto: "#1d1d1b",
-  acento: "#d9622b",
+  /** Azul petróleo de Río Limarí: botones, pestaña activa y la zona del logo (texto blanco encima: ~9:1). */
+  acento: "#004D69",
   ok: "#2f8f46",
   alerta: "#c0392b",
   linea: "#e2e0da",

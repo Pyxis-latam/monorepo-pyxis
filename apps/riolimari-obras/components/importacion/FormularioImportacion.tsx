@@ -103,7 +103,7 @@ export function FormularioImportacion({ obraId }: { obraId?: string }) {
               </tbody>
             </table>
           </div>
-          <button onClick={confirmar} disabled={!puedeConfirmar} className="rounded bg-obra-accent px-4 py-2 font-semibold text-white disabled:opacity-40">
+          <button onClick={confirmar} disabled={!puedeConfirmar} className="rounded bg-obra-accent px-4 py-2 font-semibold text-white enabled:hover:bg-obra-accent-strong enabled:active:bg-obra-accent-strong disabled:opacity-40">
             {obraId ? "Aplicar cambios" : "Crear obra"}
           </button>
         </section>

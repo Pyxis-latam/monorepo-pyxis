@@ -151,7 +151,7 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
         </p>
       )}
 
-      <button disabled={enviando} className="w-full rounded-lg bg-obra-accent py-4 text-lg font-semibold text-white disabled:opacity-60">
+      <button disabled={enviando} className="w-full rounded-lg bg-obra-accent py-4 text-lg font-semibold text-white enabled:hover:bg-obra-accent-strong enabled:active:bg-obra-accent-strong disabled:opacity-60">
         {enviando ? "Enviando…" : fallo ? "Reintentar" : "Enviar reporte"}
       </button>
     </form>

@@ -1,7 +1,7 @@
-# Ovalle Obras móvil (`@pyxis/riolimari-obras-movil`)
+# Río Limarí Obras móvil (`@pyxis/riolimari-obras-movil`)
 
-App de terreno de Constructora Ovalle, hecha con Expo (SDK 57) y expo-router. Es la versión
-nativa (Android/iOS) del flujo de terreno de la web [`apps/riolimari-obras`](../riolimari-obras/README.md):
+App de terreno de Constructora e Inmobiliaria Río Limarí, hecha con Expo (SDK 57) y expo-router. Es la
+versión nativa (Android/iOS) del flujo de terreno de la web [`apps/riolimari-obras`](../riolimari-obras/README.md):
 usa el mismo proyecto Supabase, las mismas políticas RLS y la misma ruta de fotos. No agrega
 endpoints. El admin sigue trabajando solo en la web; un admin que ingrese en la app ve lo
 mismo que terreno.

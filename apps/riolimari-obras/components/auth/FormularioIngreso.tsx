@@ -60,7 +60,7 @@ export function FormularioIngreso({ siguiente }: { siguiente: string }) {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-obra-line bg-white px-3 py-3 text-base"
           />
-          <button disabled={cargando} className="w-full rounded-lg bg-obra-accent py-3 font-semibold text-white disabled:opacity-60">
+          <button disabled={cargando} className="w-full rounded-lg bg-obra-accent py-3 font-semibold text-white enabled:hover:bg-obra-accent-strong enabled:active:bg-obra-accent-strong disabled:opacity-60">
             Enviarme un código
           </button>
         </form>
@@ -77,7 +77,7 @@ export function FormularioIngreso({ siguiente }: { siguiente: string }) {
             onChange={(e) => setCodigo(e.target.value)}
             className="w-full rounded-lg border border-obra-line bg-white px-3 py-3 text-center text-2xl tracking-widest"
           />
-          <button disabled={cargando} className="w-full rounded-lg bg-obra-accent py-3 font-semibold text-white disabled:opacity-60">
+          <button disabled={cargando} className="w-full rounded-lg bg-obra-accent py-3 font-semibold text-white enabled:hover:bg-obra-accent-strong enabled:active:bg-obra-accent-strong disabled:opacity-60">
             Ingresar
           </button>
           <button type="button" onClick={() => setPaso("email")} className="w-full text-sm underline">

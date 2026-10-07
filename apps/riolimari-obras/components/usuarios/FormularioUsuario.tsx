@@ -16,7 +16,7 @@ export function FormularioUsuario() {
           <option value="admin">Admin</option>
         </select>
       </label>
-      <button disabled={pendiente} className="rounded bg-obra-accent px-4 py-2 font-semibold text-white disabled:opacity-60">Crear usuario</button>
+      <button disabled={pendiente} className="rounded bg-obra-accent px-4 py-2 font-semibold text-white enabled:hover:bg-obra-accent-strong enabled:active:bg-obra-accent-strong disabled:opacity-60">Crear usuario</button>
       {estado && <p role="status" className={`w-full text-sm ${estado.ok ? "text-obra-ok" : "text-obra-warn"}`}>{estado.mensaje}</p>}
     </form>
   );

@@ -2,7 +2,7 @@
   "name": "@pyxis/riolimari-core",
   "version": "0.0.0",
   "private": true,
-  "description": "Lógica de dominio de Ovalle Obras compartida entre la web y la app móvil",
+  "description": "Lógica de dominio de Río Limarí Obras compartida entre la web y la app móvil",
   "exports": {
     "./*": "./src/*.ts"
   },
