@@ -83,6 +83,25 @@ async function elegirDeGaleria(user: Usuario, uri: string) {
 const enviar = (user: Usuario) => user.press(screen.getByRole("button", { name: "Enviar reporte" }));
 const reintentar = (user: Usuario) => user.press(screen.getByRole("button", { name: "Reintentar" }));
 
+/** Un selector que queda abierto hasta que la prueba lo resuelva. */
+function selectorPendiente<T>() {
+  let resolver: (valor: T) => void = () => {};
+  const promesa = new Promise<T>((resolve) => (resolver = resolve));
+  return { promesa, resolver: (valor: T) => act(async () => resolver(valor)) };
+}
+
+type Fibra = { memoizedProps: Record<string, unknown> | null; return: Fibra | null };
+/**
+ * `onPress` del Pressable que contiene el elemento, aunque esté deshabilitado (los eventos de la
+ * librería lo respetan). Simula un toque que se cuela antes de que el botón quede deshabilitado.
+ */
+function onPressDe(elemento: { unstable_fiber: unknown }): () => Promise<void> {
+  let fibra = elemento.unstable_fiber as Fibra | null;
+  while (fibra && typeof fibra.memoizedProps?.onPress !== "function") fibra = fibra.return;
+  if (!fibra) throw new Error("El elemento no está dentro de un Pressable");
+  return fibra.memoizedProps!.onPress as () => Promise<void>;
+}
+
 describe("cantidad", () => {
   it("muestra cuánto lleva la partida, en cuánto quedaría con este reporte y avisa si se pasa de lo presupuestado", async () => {
     const { user } = await abrir();
@@ -298,6 +317,63 @@ describe("foto", () => {
     expect(await screen.findByText(/permite el acceso a la cámara/)).toBeOnTheScreen();
     expect(mockLanzarCamara).not.toHaveBeenCalled();
     expect(screen.queryByLabelText("Foto adjunta")).not.toBeOnTheScreen();
+  });
+
+  it("no deja enviar mientras el selector de fotos está abierto", async () => {
+    const selector = selectorPendiente<ReturnType<typeof foto>>();
+    mockLanzarGaleria.mockReturnValueOnce(selector.promesa);
+    mockEnviarReporte.mockResolvedValue({ ok: true });
+    const { user } = await abrir();
+
+    await escribirCantidad(user, "5");
+    await user.press(screen.getByRole("button", { name: "Elegir de la galería" }));
+    expect(screen.getByRole("button", { name: "Enviar reporte" })).toBeDisabled();
+    await enviar(user);
+    expect(mockEnviarReporte).not.toHaveBeenCalled();
+
+    await selector.resolver(foto("file:///a.jpg"));
+    expect(await screen.findByLabelText("Foto adjunta")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Enviar reporte" })).toBeEnabled();
+    await enviar(user);
+    expect(mockEnviarReporte.mock.calls[0][1].foto).toBe(BYTES_A);
+  });
+
+  it("no deja enviar mientras pide el permiso de cámara", async () => {
+    const permiso = selectorPendiente<{ granted: boolean }>();
+    mockPedirPermisoCamara.mockReturnValueOnce(permiso.promesa);
+    const { user } = await abrir();
+
+    await escribirCantidad(user, "5");
+    await user.press(screen.getByRole("button", { name: "Tomar foto" }));
+    expect(screen.getByRole("button", { name: "Enviar reporte" })).toBeDisabled();
+
+    await permiso.resolver({ granted: false });
+    expect(await screen.findByText(/permite el acceso a la cámara/)).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Enviar reporte" })).toBeEnabled();
+  });
+
+  it("si un envío se cuela con el selector abierto y el insert falla, la foto que llega después no cambia el id ni la reemplaza", async () => {
+    mockEnviarReporte.mockResolvedValueOnce(FALLO_INSERT).mockResolvedValueOnce({ ok: true });
+    const { user } = await abrir();
+
+    await escribirCantidad(user, "5");
+    await elegirDeGaleria(user, "file:///a.jpg");
+    const selector = selectorPendiente<ReturnType<typeof foto>>();
+    mockLanzarGaleria.mockReturnValueOnce(selector.promesa);
+    await user.press(screen.getByRole("button", { name: "Elegir de la galería" }));
+
+    await act(onPressDe(screen.getByRole("button", { name: /Enviar reporte|Enviando/ })));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/No se pudo enviar el reporte/);
+
+    // El insert pudo llegar a la BD: una foto nueva con un id nuevo duplicaría el avance.
+    await selector.resolver(foto("file:///b.jpg"));
+    expect(screen.getByLabelText("Foto adjunta").props.source).toEqual({ uri: "file:///a.jpg" });
+
+    await reintentar(user);
+    const [, primero] = mockEnviarReporte.mock.calls[0];
+    const [, segundo] = mockEnviarReporte.mock.calls[1];
+    expect(segundo.id).toBe(primero.id);
+    expect(segundo.foto).toBe(BYTES_A);
   });
 
   it("si el usuario cancela el selector no cambia nada", async () => {

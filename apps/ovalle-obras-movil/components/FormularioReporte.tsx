@@ -53,6 +53,10 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
   // Tras un insert intentado el reporte pudo llegar a la BD (solo se perdió la respuesta): desde ahí el id, la foto y los
   // valores quedan fijos. Un reintento con otros valores daría 23505 ("enviado") y la BD conservaría los primeros.
   const [insertIntentado, setInsertIntentado] = useState(false);
+  // Copia en ref para `cambiarFoto`: el resultado del selector llega en el cierre del render en que se abrió.
+  const insertIntentadoRef = useRef(false);
+  // Selector o permiso de cámara en curso: mientras tanto no se envía (la foto podría cambiar después).
+  const [eligiendoFoto, setEligiendoFoto] = useState(false);
   const [modo, setModo] = useState<Modo>("cantidad");
   const [texto, setTexto] = useState("");
   const [comentario, setComentario] = useState("");
@@ -66,8 +70,13 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
   const seExcede = lectura?.ok && partida.ejecutado + lectura.cantidad > partida.cantidad;
   const bloqueado = insertIntentado || enviando;
 
+  function marcarInsertIntentado() {
+    insertIntentadoRef.current = true;
+    setInsertIntentado(true);
+  }
+
   function cambiarFoto(nueva: Foto | null) {
-    if (insertIntentado) return;
+    if (insertIntentadoRef.current) return;
     // Sin insert intentado no hay reporte en la BD: la foto puede cambiar. Cada foto sube a <obra>/<autor>/<id>.jpg,
     // una ruta inmutable que no se sobrescribe, así que otra foto va con un id nuevo (si no, la subida daría 409
     // y el reporte quedaría con los bytes de la foto anterior).
@@ -84,17 +93,27 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
 
   async function tomarFoto() {
     setAvisoCamara(null);
-    const permiso = await requestCameraPermissionsAsync();
-    if (!permiso.granted) {
-      setAvisoCamara("Para tomar fotos, permite el acceso a la cámara en los ajustes del teléfono.");
-      return;
+    setEligiendoFoto(true);
+    try {
+      const permiso = await requestCameraPermissionsAsync();
+      if (!permiso.granted) {
+        setAvisoCamara("Para tomar fotos, permite el acceso a la cámara en los ajustes del teléfono.");
+        return;
+      }
+      recibirFoto(await launchCameraAsync({ mediaTypes: ["images"], quality: 1 }));
+    } finally {
+      setEligiendoFoto(false);
     }
-    recibirFoto(await launchCameraAsync({ mediaTypes: ["images"], quality: 1 }));
   }
 
   async function elegirDeGaleria() {
     setAvisoCamara(null);
-    recibirFoto(await launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 }));
+    setEligiendoFoto(true);
+    try {
+      recibirFoto(await launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 }));
+    } finally {
+      setEligiendoFoto(false);
+    }
   }
 
   async function bytesDe(elegida: Foto): Promise<ArrayBuffer> {
@@ -133,12 +152,12 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
         return;
       }
       fotoSubida.current = resultado.fotoSubida;
-      if (resultado.insertIntentado) setInsertIntentado(true);
+      if (resultado.insertIntentado) marcarInsertIntentado();
       setError(resultado.mensaje);
       setFallo(true);
     } catch {
       // No sabemos hasta dónde llegó el envío: el insert pudo salir. El id y la foto quedan fijos.
-      setInsertIntentado(true);
+      marcarInsertIntentado();
       setError("Algo falló. Reintenta.");
       setFallo(true);
     } finally {
@@ -229,7 +248,12 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
       ) : null}
       {insertIntentado ? <Text style={estilos.texto}>{NOTA_FIJO}</Text> : null}
 
-      <Boton titulo={enviando ? "Enviando…" : fallo ? "Reintentar" : "Enviar reporte"} onPress={enviar} ocupado={enviando} />
+      <Boton
+        titulo={enviando ? "Enviando…" : fallo ? "Reintentar" : "Enviar reporte"}
+        onPress={enviar}
+        ocupado={enviando}
+        deshabilitado={eligiendoFoto}
+      />
     </ScrollView>
   );
 }
