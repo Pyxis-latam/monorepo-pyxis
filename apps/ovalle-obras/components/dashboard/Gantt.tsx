@@ -1,9 +1,14 @@
 import { aplanar } from "@pyxis/ovalle-core/avance/arbol";
-import type { NodoAvance } from "@pyxis/ovalle-core/avance/tipos";
-import { formatoPorcentaje } from "@pyxis/ovalle-core/formato";
+import { ETIQUETA_ESTADO, type Estado, type NodoAvance } from "@pyxis/ovalle-core/avance/tipos";
+import { formatoFecha, formatoPorcentaje } from "@pyxis/ovalle-core/formato";
 import { meses, posicionBarra, posicionDia, rangoDe } from "@/lib/gantt/escala";
 
 const pct = (f: number) => `${f * 100}%`;
+
+const colorBarra = (estado: Estado) =>
+  estado === "atrasada" ? "bg-obra-warn" : estado === "terminada" ? "bg-obra-ok" : "bg-obra-accent";
+
+const ESTADOS_LEYENDA: Estado[] = ["al_dia", "atrasada", "terminada"];
 
 export function Gantt({ raices, hoy }: { raices: NodoAvance[]; hoy: string }) {
   const rango = rangoDe(raices);
@@ -24,7 +29,7 @@ export function Gantt({ raices, hoy }: { raices: NodoAvance[]; hoy: string }) {
         </div>
         {filas.map((n) => {
           const barra = n.esHoja ? posicionBarra(n.fecha_inicio!, n.fecha_fin!, rango) : null;
-          const color = n.estado === "atrasada" ? "bg-obra-warn" : n.estado === "terminada" ? "bg-obra-ok" : "bg-obra-accent";
+          const avance = formatoPorcentaje(n.porcentaje);
           return (
             <div key={n.id} className="flex border-b border-obra-line/60 text-sm">
               <div className={`w-80 shrink-0 truncate px-3 py-1.5 ${n.esHoja ? "" : "font-semibold"}`} style={{ paddingLeft: `${0.75 + n.nivel}rem` }}>
@@ -32,16 +37,44 @@ export function Gantt({ raices, hoy }: { raices: NodoAvance[]; hoy: string }) {
               </div>
               <div className="relative flex-1">
                 {barra && (
-                  <div className="absolute top-1.5 h-4 rounded bg-obra-line" style={{ left: pct(barra.izquierda), width: pct(barra.ancho) }}>
-                    <div aria-label={`Avance ${formatoPorcentaje(n.porcentaje)}`} className={`h-4 rounded ${color}`} style={{ width: pct(Math.min(n.porcentaje, 1)) }} />
+                  <div
+                    title={`${n.codigo} ${n.descripcion} · ${formatoFecha(n.fecha_inicio)} → ${formatoFecha(n.fecha_fin)} · ${ETIQUETA_ESTADO[n.estado]}`}
+                    className="absolute top-1.5 h-4 rounded bg-obra-line"
+                    style={{ left: pct(barra.izquierda), width: pct(barra.ancho) }}
+                  >
+                    <div
+                      role="progressbar"
+                      aria-label={`Avance ${n.codigo}: ${avance}`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(Math.min(n.porcentaje, 1) * 100)}
+                      aria-valuetext={`${avance} · ${ETIQUETA_ESTADO[n.estado]}`}
+                      className={`h-4 rounded ${colorBarra(n.estado)}`}
+                      style={{ width: pct(Math.min(n.porcentaje, 1)) }}
+                    />
                   </div>
                 )}
-                {xHoy !== null && <div aria-hidden className="absolute inset-y-0 w-px bg-obra-warn/70" style={{ left: pct(xHoy) }} />}
+                {xHoy !== null && <div aria-hidden className="absolute inset-y-0 w-px bg-obra-fg" style={{ left: pct(xHoy) }} />}
               </div>
             </div>
           );
         })}
-        {xHoy !== null && <p aria-label="Hoy" className="px-3 py-1 text-xs text-obra-warn">Línea roja: hoy</p>}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-3 py-2 text-xs text-gray-600">
+          <ul aria-label="Leyenda de estados" className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {ESTADOS_LEYENDA.map((estado) => (
+              <li key={estado} className="flex items-center gap-1.5">
+                <span aria-hidden className={`inline-block h-3 w-3 rounded ${colorBarra(estado)}`} />
+                {ETIQUETA_ESTADO[estado]}
+              </li>
+            ))}
+          </ul>
+          {xHoy !== null && (
+            <p id="leyenda-hoy" className="flex items-center gap-1.5">
+              <span aria-hidden className="inline-block h-3 w-px bg-obra-fg" />
+              Línea negra: hoy
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

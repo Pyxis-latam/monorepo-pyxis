@@ -48,7 +48,8 @@ export default async function DashboardObra({
       <Indicadores resumen={resumen} />
       <Pestanas obraId={id} vista={vista} filtro={filtro} />
       {vista === "tabla" && <TablaAvance raices={filtradas} />}
-      {vista === "gantt" && <Gantt raices={filtradas} hoy={hoy} />}
+      {vista === "gantt" &&
+        (filtradas.length === 0 ? <p>No hay partidas para este filtro.</p> : <Gantt raices={filtradas} hoy={hoy} />)}
     </div>
   );
 }
