@@ -29,6 +29,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@pyxis/typescript-config": "*",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",
