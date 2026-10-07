@@ -1,0 +1,24 @@
+{
+  "name": "@pyxis/ovalle-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lógica de dominio de Ovalle Obras compartida entre la web y la app móvil",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@pyxis/typescript-config": "*",
+    "@swc/core": "^1",
+    "@swc/jest": "^0",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2"
+  }
+}

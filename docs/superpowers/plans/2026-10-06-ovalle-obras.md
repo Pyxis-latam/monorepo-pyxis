@@ -5476,3 +5476,104 @@ Run: `npm run test:db -w @pyxis/ovalle-obras` y `npm run test:e2e -w @pyxis/oval
 git add README.md apps/ovalle-obras/README.md
 git commit -m "docs(ovalle-obras): local setup, tests and production runbook"
 ```
+
+---
+
+## Anexo: app móvil Expo (Tasks 22–24)
+
+Spec: sección 11 del spec. Estas tareas usan los módulos de `@pyxis/ovalle-core` creados en las Tasks 5, 10, 11, 14, 17 y 18 (`fechas`, `formato`, `avance/*`, `datos/obra`, `datos/feed`, `terreno/lista`, `reportes/cantidad`, `reportes/enviar`, `database.types`).
+
+**Constraints de la app móvil** (además de las Global Constraints que apliquen):
+- `apps/ovalle-obras-movil`, paquete `@pyxis/ovalle-obras-movil`, Expo SDK 57, expo-router, TypeScript estricto.
+- Dependencias nativas SIEMPRE con `npx expo install <pkg>` (dentro de `apps/ovalle-obras-movil`) para que coincidan con el SDK; después `npm install` en la raíz si hace falta para sincronizar el lockfile.
+- Variables: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (en `apps/ovalle-obras-movil/.env.local`, ignorado por git).
+- Ante dudas de API de Expo / expo-router / expo-image-picker / expo-image-manipulator, leer la documentación del paquete instalado en `node_modules` (README, `build/*.d.ts`); no asumir APIs de memoria.
+- No definir script `build` (turbo `build` es para las webs). Scripts: `dev` (`expo start`), `android`, `ios`, `lint`, `typecheck` (`tsc --noEmit`), `test` (`jest`), `export:check` (`expo export --platform android --output-dir dist-check`).
+- Ids de reporte con `randomUUID()` de `expo-crypto` (React Native no tiene `crypto.randomUUID`).
+- UI en español de Chile, botones grandes (mín. 48 px de alto), pensada para usar con una mano en obra.
+
+### Task 22: App Expo — esqueleto, cliente Supabase, sesión e ingreso
+
+**Files:**
+- Create: `apps/ovalle-obras-movil/` (package.json, app.json, tsconfig.json, babel/metro config si el SDK los necesita, eslint.config.js, jest config, `.gitignore`), `app/_layout.tsx`, `app/ingresar.tsx`, `app/(app)/_layout.tsx`, `app/(app)/index.tsx` (temporal: "Obras" + botón Salir), `lib/supabase.ts`, `lib/sesion.tsx`, `scripts/env-local.mjs`
+- Test: `__tests__/ingresar.test.tsx`, `__tests__/sesion.test.tsx`
+
+**Interfaces:**
+- Consumes: `Database` de `@pyxis/ovalle-core/database.types`.
+- Produces:
+  - `supabase: SupabaseClient<Database>` (`lib/supabase.ts`): `createClient` con `auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }`; registra un listener de `AppState` que llama `supabase.auth.startAutoRefresh()` en `active` y `stopAutoRefresh()` en otro estado.
+  - `type PerfilMovil = { id: string; nombre: string; rol: "admin" | "terreno" }`
+  - `SesionProvider` y `useSesion(): { cargando: boolean; perfil: PerfilMovil | null; sinAcceso: boolean; salir(): Promise<void> }` (`lib/sesion.tsx`). `sinAcceso` = hay sesión de Auth pero no hay perfil activo.
+
+- [ ] **Step 1: Crear la app**
+  En `apps/`: `npx create-expo-app@latest ovalle-obras-movil --template blank-typescript --no-install`. Ajustar `package.json`: `"name": "@pyxis/ovalle-obras-movil"`, `"main": "expo-router/entry"`, scripts de los constraints, dependencia `"@pyxis/ovalle-core": "*"`. `app.json`: `name: "Ovalle Obras"`, `slug: "ovalle-obras"`, `scheme: "ovalleobras"`, `orientation: "portrait"`, plugin `expo-router`, plugin `expo-image-picker` con `cameraPermission: "Ovalle Obras usa la cámara para adjuntar fotos a los reportes de avance."`. tsconfig extiende `expo/tsconfig.base` con `strict: true` y alias `@/*` → `./*`. Borrar `App.tsx`/`index.ts` del template.
+  Desde `apps/ovalle-obras-movil`: `npx expo install expo-router react-native-safe-area-context react-native-screens expo-linking expo-constants expo-status-bar @react-native-async-storage/async-storage expo-image-picker expo-image-manipulator expo-crypto`; desde la raíz `npm install @supabase/supabase-js -w @pyxis/ovalle-obras-movil`. Dev: `jest-expo`, `jest`, `@testing-library/react-native`, `@types/jest`, `eslint`, `eslint-config-expo` (con `npx expo install -- --save-dev ...` o `npm install -D ... -w`).
+  Si Metro no resuelve `@pyxis/ovalle-core` en el monorepo, crear `metro.config.js` con `getDefaultConfig(__dirname)` (Expo ≥ 52 ya configura monorepos; agregar `watchFolders`/`nodeModulesPaths` solo si `export:check` falla).
+
+- [ ] **Step 2: Tests de ingreso y sesión (fallan)**
+  `__tests__/ingresar.test.tsx` (mockear `@/lib/supabase` y `expo-router`):
+  - Escribe email, toca "Enviarme un código" → `supabase.auth.signInWithOtp` recibe `{ email: "juan@ovalle.cl", options: { shouldCreateUser: false } }` (email en minúsculas y sin espacios).
+  - Aparece el campo "Código"; escribe `123456`, toca "Ingresar" → `verifyOtp({ email, token: "123456", type: "email" })` y `router.replace("/")`.
+  - Si `verifyOtp` devuelve error → se muestra "El código no es válido o venció. Pide uno nuevo." y no navega.
+  - Si `signInWithOtp` devuelve error → "No pudimos enviar el código. Revisa el email o pide acceso al administrador."
+  `__tests__/sesion.test.tsx`: con un cliente mock cuyo `auth.getSession` devuelve una sesión y `from("perfiles")…maybeSingle()` devuelve `{ id, nombre, rol, activo: true }` → `useSesion().perfil` queda con esos datos; con `activo: false` → `perfil` null y `sinAcceso` true; sin sesión → `perfil` null y `sinAcceso` false.
+  Run: `npm test -w @pyxis/ovalle-obras-movil` → FAIL (módulos no existen).
+
+- [ ] **Step 3: Implementar**
+  - `lib/supabase.ts` como en Interfaces. Si `supabase-js` falla en Hermes por `URL`, agregar `react-native-url-polyfill/auto` como primer import.
+  - `lib/sesion.tsx`: al montar, `getSession()`; escucha `onAuthStateChange`; con sesión carga `perfiles` (`id, nombre, rol, activo`) del usuario; `salir()` llama `signOut()`.
+  - `app/_layout.tsx`: `SesionProvider` + `Stack` sin encabezados.
+  - `app/ingresar.tsx`: mismos textos y flujo que la web (`apps/ovalle-obras/components/auth/FormularioIngreso.tsx`): "Email", "Enviarme un código", "Código", "Ingresar", "Usar otro email"; `keyboardType="email-address"` / `"number-pad"`, `autoComplete="one-time-code"` en el código.
+  - `app/(app)/_layout.tsx`: mientras `cargando` → `ActivityIndicator`; sin perfil y sin `sinAcceso` → `<Redirect href="/ingresar" />`; con `sinAcceso` → pantalla "Tu cuenta no tiene acceso" + botón "Salir"; con perfil → `Tabs` con "Partidas" (`index`) y "Mis reportes" (`reportes`, se crea en Task 24; mientras no exista, no declararla).
+  - `scripts/env-local.mjs`: lee `../ovalle-obras/.env.local`, toma `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`, reemplaza `127.0.0.1`/`localhost` por la IP LAN IPv4 de la máquina (`os.networkInterfaces()`, primera no interna) y escribe `.env.local` con `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Script npm `env:local`.
+- [ ] **Step 4: Verificar**
+  `npm test -w @pyxis/ovalle-obras-movil` → PASS. `npm run typecheck -w @pyxis/ovalle-obras-movil` → sin errores. `npm run lint -w @pyxis/ovalle-obras-movil` → sin errores. `npm run export:check -w @pyxis/ovalle-obras-movil` → termina exportando el bundle (Metro empaqueta, incluido `@pyxis/ovalle-core`). Borrar `dist-check/` y agregarlo a `.gitignore`. En la raíz, `npm test` y `npm run lint` siguen verdes para todas las apps.
+- [ ] **Step 5: Commit** — `feat(ovalle-obras-movil): Expo app scaffold with Supabase session and email-code login`
+
+### Task 23: App Expo — obras, partidas y reportar con foto
+
+**Files:**
+- Modify: `app/(app)/index.tsx` (lista real de obras)
+- Create: `app/(app)/obras/[id].tsx`, `app/(app)/obras/[id]/partidas/[partidaId].tsx` (o la estructura equivalente de expo-router), `components/TarjetaPartida.tsx`, `components/FormularioReporte.tsx`, `lib/fotos.ts`, `lib/reportes.ts`
+- Test: `__tests__/FormularioReporte.test.tsx`, `__tests__/fotos.test.ts`, `__tests__/reportes.test.ts`
+
+**Interfaces:**
+- Consumes: `cargarAvanceObra(supabase, obraId, hoy)` (`@pyxis/ovalle-core/datos/obra`), `hoyEnChile` (`fechas`), `itemsTerreno` / `enCursoHoy` / `buscarPartidas` / `ItemPartida` (`terreno/lista`), `parseCantidadIngresada` (`reportes/cantidad`), `enviarReporte` / `ClienteReportes` / `NuevoReporte` (`reportes/enviar`), `formatoCantidad` / `formatoPorcentaje` (`formato`), `supabase` y `useSesion` (Task 22).
+- Produces:
+  - `prepararFotoMovil(uri: string, ancho: number, alto: number): Promise<ArrayBuffer>` (`lib/fotos.ts`): redimensiona con expo-image-manipulator para que el lado mayor sea máx. 1600 (sin agrandar), JPEG calidad 0.8, y devuelve los bytes. Usa la API vigente del paquete instalado.
+  - `clienteReportesMovil(cliente: SupabaseClient<Database>): ClienteReportes` (`lib/reportes.ts`): `subirFoto` hace `storage.from("fotos").upload(ruta, bytes, { contentType: "image/jpeg" })` y devuelve `{ error: { message, statusCode } | null }`; `insertarReporte` hace `from("reportes").insert(fila)` y devuelve `{ error: { code, message } | null }`.
+  - `FormularioReporte({ obraId, autorId, partida, alEnviar })` con `partida: { id; codigo; descripcion; unidad; cantidad; ejecutado }` y `alEnviar(): void`.
+
+- [ ] **Step 1: Tests (fallan)**
+  - `__tests__/reportes.test.ts`: con un cliente mock, `subirFoto("o1/u1/r1.jpg", bytes)` llama `storage.from("fotos").upload("o1/u1/r1.jpg", bytes, { contentType: "image/jpeg" })`; un error de storage `{ message: "The resource already exists", statusCode: "409" }` se devuelve tal cual; `insertarReporte(fila)` propaga `error.code` (p. ej. `"23505"`).
+  - `__tests__/fotos.test.ts`: con expo-image-manipulator mockeado, una foto de 4032×3024 se redimensiona a ancho 1600 (y una vertical 3024×4032 a alto 1600), con compresión 0.8 y formato JPEG; una de 800×600 no se agranda.
+  - `__tests__/FormularioReporte.test.tsx` (mockear `@pyxis/ovalle-core/reportes/enviar` → `enviarReporte`, `@/lib/reportes`, `@/lib/fotos`, `@/lib/supabase`, `expo-image-picker`, `expo-crypto` → `randomUUID` fijo):
+    - Muestra "Faltan 200 kg de 4.200 kg" para `{ cantidad: 4200, ejecutado: 4000, unidad: "kg" }`; al escribir 300 aparece "Con este reporte se supera lo presupuestado. Puedes enviarlo igual."
+    - "12,5" → `enviarReporte` recibe `cantidad: 12.5`; si devuelve `{ ok: false, mensaje, fotoSubida: true }` se muestra el mensaje, se conserva el comentario y el botón dice "Reintentar"; el reintento usa el mismo `id` y `fotoYaSubida: true`; con `{ ok: true }` llama `alEnviar`.
+    - Modo "%": "1" con cantidad 4200 muestra "= 42 kg" y envía 42.
+    - "0" muestra "Ingresa una cantidad mayor que 0." y no envía.
+  Run: `npm test -w @pyxis/ovalle-obras-movil` → FAIL.
+- [ ] **Step 2: Implementar**
+  - `app/(app)/index.tsx`: obras activas (`from("obras").select("id, nombre").eq("estado", "activa").order("nombre")`); con una sola, `router.replace` a ella; estado vacío "No hay obras activas."; pull-to-refresh.
+  - `app/(app)/obras/[id].tsx`: `cargarAvanceObra(supabase, id, hoyEnChile())`; `TextInput` de búsqueda ("Buscar partida…"); sin búsqueda, sección "En curso hoy" (`enCursoHoy`) y luego por capítulo (`itemsTerreno`); con búsqueda, `buscarPartidas` sin secciones; `TarjetaPartida` con código, descripción, barra de avance y "x%, ejecutado/cantidad unidad"; pull-to-refresh; parámetro `enviado=1` muestra "Reporte enviado ✓".
+  - Pantalla de partida: carga la partida (`partidas` + `partida_ejecutado`) y renderiza `FormularioReporte`; `alEnviar` → volver a la lista de la obra con `enviado=1`.
+  - `FormularioReporte`: selector unidad / "%"; `TextInput` `keyboardType="decimal-pad"` con label "Cantidad ejecutada (<unidad>)" o "Porcentaje ejecutado"; "Tomar foto" (`launchCameraAsync`, pide permiso) y "Elegir de la galería" (`launchImageLibraryAsync`), miniatura y "Quitar foto"; comentario multilínea (máx. 1000) con label "Comentario (opcional)"; botón "Enviar reporte" / "Enviando…" / "Reintentar". Id del reporte con `randomUUID()` una sola vez (estado inicial); `fotoYaSubida` en un ref, igual que la web. Al enviar: `prepararFotoMovil(uri, ancho, alto)` si hay foto → `enviarReporte(clienteReportesMovil(supabase), { id, obraId, partidaId, autorId, cantidad, comentario, foto: bytes }, fotoYaSubida)`.
+  - Si `enviarReporte` del core tipa `foto` como `Blob`, ampliarlo a `Blob | ArrayBuffer` en `packages/ovalle-core/src/reportes/enviar.ts` (y en `ClienteReportes.subirFoto`) sin cambiar su comportamiento; los tests del core deben seguir pasando.
+- [ ] **Step 3: Verificar** — tests, typecheck, lint y `export:check` como en Task 22; `npm test -w @pyxis/ovalle-core` sigue verde.
+- [ ] **Step 4: Commit** — `feat(ovalle-obras-movil): obras, partidas and photo progress reports`
+
+### Task 24: App Expo — Mis reportes y documentación
+
+**Files:**
+- Create: `app/(app)/reportes.tsx`, `apps/ovalle-obras-movil/README.md`
+- Modify: `app/(app)/_layout.tsx` (declarar la pestaña), `README.md` raíz (Layout), `apps/ovalle-obras/README.md` (sección "App móvil" con un enlace)
+- Test: `__tests__/reportes-pantalla.test.tsx`
+
+**Interfaces:**
+- Consumes: `cargarFeed(supabase, { autorId }, 30)` y `ReporteFeed` (`@pyxis/ovalle-core/datos/feed`), `formatoCantidad` (`formato`), `useSesion` (Task 22).
+
+- [ ] **Step 1: Test (falla)** — con `cargarFeed` mockeado devolviendo un reporte `{ cantidad: 20, partida: { codigo: "1.1", descripcion: "Enfierradura losa P3", unidad: "kg" }, comentario: "Sector norte", creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: "https://x/f.jpg" }` y otro anulado: se ve "20 kg · 1.1 Enfierradura losa P3", "Sector norte", "05-11-2026 11:32" (hora de Chile), una imagen con accessibilityLabel "Foto del reporte", y "Anulado" en el segundo; sin reportes: "Todavía no has enviado reportes.". `cargarFeed` se llama con `{ autorId: <id del perfil> }` y 30.
+- [ ] **Step 2: Implementar** — `FlatList` con pull-to-refresh; hora con `Intl.DateTimeFormat("es-CL", { timeZone: "America/Santiago", ... })` armada con `formatToParts` como `dd-mm-aaaa HH:MM`; foto con `Image` (URL firmada).
+- [ ] **Step 3: README de la app** — qué hace; requisitos (Expo Go SDK 57 en el teléfono, misma red Wi-Fi que el PC); pasos: `npm run db:start -w @pyxis/ovalle-obras`, `npm run env:local -w @pyxis/ovalle-obras`, `npm run env:local -w @pyxis/ovalle-obras-movil`, `npm run dev -w @pyxis/ovalle-obras-movil` y escanear el QR; tests; producción: `.env` con la URL y anon key del Supabase de producción, `npx eas build -p android --profile preview` (APK interno) y `eas submit` para tiendas (requiere cuentas Expo/Google/Apple — fuera de este repo). En el README raíz agregar a Layout `ovalle-obras-movil/  @pyxis/ovalle-obras-movil — app de terreno, Constructora Ovalle (Expo)` y `ovalle-core/  @pyxis/ovalle-core — lógica de dominio compartida web/móvil`.
+- [ ] **Step 4: Verificar** — tests, typecheck, lint, `export:check` de la app; en la raíz `npm test`, `npm run lint`, `npm run build` verdes.
+- [ ] **Step 5: Commit** — `feat(ovalle-obras-movil): my reports screen and docs`

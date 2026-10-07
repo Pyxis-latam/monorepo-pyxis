@@ -191,3 +191,29 @@ agregadas / modificadas / eliminadas antes de confirmar.
 - Formato real de exportación de Unysoft (para un importador futuro).
 - Contenido exacto que el mandante espera en el PDF de avance (la V1 entrega
   indicadores + tabla).
+
+## 11. Anexo (2026-10-06): app móvil nativa con Expo
+
+Ampliación de alcance: además de la web responsiva, el usuario de **terreno** tiene
+una app nativa (Android/iOS) hecha con **Expo**.
+
+- **Ubicación:** `apps/ovalle-obras-movil` (`@pyxis/ovalle-obras-movil`), Expo SDK 57
+  con expo-router. No se despliega en Vercel; se prueba con Expo Go y se compila con EAS.
+- **Alcance:** solo el flujo de terreno — ingreso con código al email, obras activas,
+  lista de partidas ("en curso hoy" primero + buscador), reportar avance (cantidad o %,
+  foto con la cámara o la galería, comentario), "Mis reportes" y salir. El admin sigue
+  siendo solo web. Un admin que ingrese en la app ve lo mismo que terreno.
+- **Mismo backend:** el mismo proyecto Supabase, las mismas políticas RLS y la misma
+  ruta de fotos (`<obra_id>/<autor_id>/<reporte_id>.jpg`). No hay endpoints nuevos.
+- **Lógica compartida:** el paquete `packages/ovalle-core` (`@pyxis/ovalle-core`) contiene
+  la lógica de dominio pura que usan la web y la app: números y fechas chilenas, formato,
+  cálculos de avance, lista de terreno, cantidad ingresada, envío de reportes a prueba de
+  reintentos, carga de datos de obra y feed, y los tipos generados de Supabase.
+- **Fotos:** se reducen en el teléfono a máx. 1600 px JPEG 0.8 antes de subir.
+- **Sesión:** se guarda en el teléfono (AsyncStorage) y se renueva sola mientras la app
+  está en primer plano.
+- **Errores:** igual que la web — si el envío falla, el formulario conserva lo escrito y
+  la foto y ofrece reintentar con el mismo id de reporte.
+- **Pruebas:** unitarias con jest-expo y Testing Library de React Native (ingreso,
+  formulario de reporte, adaptador de Storage), typecheck, y un `expo export` que
+  verifica que Metro empaqueta la app dentro del monorepo.
