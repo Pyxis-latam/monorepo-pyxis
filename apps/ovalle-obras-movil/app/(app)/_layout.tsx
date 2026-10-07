@@ -3,8 +3,11 @@ import { Tabs } from "expo-router/js-tabs";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Boton } from "@/components/Boton";
+import { BotonSalir } from "@/components/BotonSalir";
 import { useSesion } from "@/lib/sesion";
 import { colores } from "@/lib/tema";
+
+const botonSalir = () => <BotonSalir />;
 
 export default function LayoutApp() {
   const { cargando, perfil, sinAcceso, errorPerfil, reintentar, salir } = useSesion();
@@ -52,10 +55,15 @@ export default function LayoutApp() {
         // Sin íconos por ahora: solo la etiqueta, grande.
         tabBarIconStyle: { display: "none" },
         tabBarLabelStyle: { fontSize: 16, fontWeight: "600" },
+        // Encabezado de las pestañas de una sola pantalla; igual al de las pilas.
+        headerStyle: { backgroundColor: colores.fondo },
+        headerTintColor: colores.texto,
+        headerTitleStyle: { fontWeight: "700" },
       }}
     >
       {/* Cada pestaña con varias pantallas es un grupo con su propia pila (aquí, su encabezado). */}
       <Tabs.Screen name="(partidas)" options={{ title: "Partidas", headerShown: false }} />
+      <Tabs.Screen name="reportes" options={{ title: "Mis reportes", headerRight: botonSalir }} />
     </Tabs>
   );
 }

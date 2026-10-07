@@ -5,12 +5,19 @@ import { useSesion, type Sesion } from "@/lib/sesion";
 
 jest.mock("@/lib/sesion", () => ({ useSesion: jest.fn() }));
 jest.mock("expo-router", () => ({ Redirect: jest.fn(() => null) }));
+const mockPestana = jest.fn();
 jest.mock("expo-router/js-tabs", () => {
   const { Text } = jest.requireActual<typeof import("react-native")>("react-native");
-  function Tabs() {
-    return <Text>pestañas</Text>;
+  function Tabs({ children }: { children: React.ReactNode }) {
+    return (
+      <>
+        <Text>pestañas</Text>
+        {children}
+      </>
+    );
   }
-  Tabs.Screen = function Screen() {
+  Tabs.Screen = function Screen(props: unknown) {
+    mockPestana(props);
     return null;
   };
   return { Tabs };
@@ -71,4 +78,15 @@ it("con perfil muestra las pestañas", async () => {
 
   expect(screen.getByText("pestañas")).toBeOnTheScreen();
   expect(Redirect).not.toHaveBeenCalled();
+});
+
+it("declara las pestañas Partidas y Mis reportes", async () => {
+  conSesion({ perfil: { id: "u1", nombre: "Juan Pérez", rol: "terreno" } });
+  await render(<LayoutApp />);
+
+  const pestanas = mockPestana.mock.calls.map(([props]) => props);
+  expect(pestanas).toEqual([
+    expect.objectContaining({ name: "(partidas)", options: expect.objectContaining({ title: "Partidas" }) }),
+    expect.objectContaining({ name: "reportes", options: expect.objectContaining({ title: "Mis reportes" }) }),
+  ]);
 });

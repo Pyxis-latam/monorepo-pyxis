@@ -24,9 +24,9 @@ packages/ovalle-core/  @pyxis/ovalle-core — lógica de dominio compartida
                        de reportes, carga de datos y tipos generados de Supabase)
 ```
 
-`@pyxis/ovalle-core` no depende de Next.js a propósito: está pensado para compartirse con
-la app móvil Expo que prevé el diseño (sección 11; todavía no está en el repo). La web lo
-importa como `@pyxis/ovalle-core/<ruta>` (p. ej. `@pyxis/ovalle-core/avance/arbol`).
+`@pyxis/ovalle-core` no depende de Next.js a propósito: lo comparten esta web y la app móvil
+Expo (sección 11 del diseño; ver [App móvil](#app-móvil)). La web lo importa como
+`@pyxis/ovalle-core/<ruta>` (p. ej. `@pyxis/ovalle-core/avance/arbol`).
 
 ## Desarrollo local
 
@@ -76,6 +76,7 @@ Por separado:
 ```bash
 npm test -w @pyxis/ovalle-obras         # unitarios de la web (sin Docker)
 npm test -w @pyxis/ovalle-core          # unitarios de la lógica de dominio (sin Docker)
+npm test -w @pyxis/ovalle-obras-movil   # unitarios de la app móvil (sin Docker)
 npm run test:db -w @pyxis/ovalle-obras  # políticas RLS e importación (Supabase local)
 npm run test:e2e -w @pyxis/ovalle-obras # flujo completo en navegador (Supabase local)
 ```
@@ -85,6 +86,15 @@ npm run test:e2e -w @pyxis/ovalle-obras # flujo completo en navegador (Supabase 
   **nunca los corras con las claves de producción en `.env.local`.**
 - `test:e2e` levanta `npm run dev` (puerto 3001) si no hay un servidor corriendo. La primera
   vez puede hacer falta `npx playwright install chromium`.
+
+## App móvil
+
+El personal de terreno también tiene una app nativa (Android/iOS) hecha con Expo en
+[`apps/ovalle-obras-movil`](../ovalle-obras-movil/README.md). Usa este mismo Supabase (mismo
+ingreso con código, mismas políticas RLS y la misma ruta de fotos), así que no hay nada extra que
+configurar en el backend: lo que se reporta desde el teléfono aparece en el feed y el dashboard de
+esta web. Para probarla en local (Expo Go, Supabase local) y para compilarla, mira su
+[README](../ovalle-obras-movil/README.md).
 
 ## Cómo funciona (lo que conviene saber al operar)
 
