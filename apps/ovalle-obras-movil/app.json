@@ -25,7 +25,9 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Ovalle Obras usa la cámara para adjuntar fotos a los reportes de avance."
+          "cameraPermission": "Ovalle Obras usa la cámara para adjuntar fotos a los reportes de avance.",
+          "photosPermission": "Ovalle Obras usa tus fotos para adjuntarlas a los reportes de avance.",
+          "microphonePermission": false
         }
       ]
     ]

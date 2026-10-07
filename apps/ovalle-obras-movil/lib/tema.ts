@@ -7,6 +7,11 @@ export const colores = {
   alerta: "#c0392b",
   linea: "#e2e0da",
   blanco: "#ffffff",
+  /** Texto de ayuda (placeholder). */
+  suave: "#8a8a85",
+  /** Fondos de los avisos de error y de reporte enviado. */
+  fondoAlerta: "#fdecea",
+  fondoOk: "#e3f4e7",
 } as const;
 
 /** Alto mínimo de botones y campos: se usan con una mano y con guantes en obra. */

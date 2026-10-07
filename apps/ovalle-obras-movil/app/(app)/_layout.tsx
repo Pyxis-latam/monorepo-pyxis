@@ -54,7 +54,8 @@ export default function LayoutApp() {
         tabBarLabelStyle: { fontSize: 16, fontWeight: "600" },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Partidas" }} />
+      {/* Cada pestaña con varias pantallas es un grupo con su propia pila (aquí, su encabezado). */}
+      <Tabs.Screen name="(partidas)" options={{ title: "Partidas", headerShown: false }} />
     </Tabs>
   );
 }
