@@ -88,8 +88,11 @@ end $$;
 create trigger preparar_reporte before insert on public.reportes
 for each row execute function public.preparar_reporte();
 
--- Cada usuario creado en Auth obtiene su perfil con nombre y rol de la metadata
--- que pone el admin al crearlo (no hay registro abierto).
+-- Cada usuario creado en Auth obtiene su perfil (no hay registro abierto).
+-- El nombre viene de user_metadata; el rol viene de app_metadata, que solo puede
+-- escribir el service role (el admin al crear el usuario). user_metadata lo puede
+-- fijar el propio cliente (p. ej. signUp options.data), asi que no es confiable
+-- para decidir privilegios.
 create function public.crear_perfil() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -98,7 +101,7 @@ begin
     new.id,
     coalesce(nullif(trim(new.raw_user_meta_data ->> 'nombre'), ''), new.email),
     new.email,
-    coalesce((new.raw_user_meta_data ->> 'rol')::public.rol_usuario, 'terreno')
+    coalesce((new.raw_app_meta_data ->> 'rol')::public.rol_usuario, 'terreno')
   );
   return new;
 end $$;
