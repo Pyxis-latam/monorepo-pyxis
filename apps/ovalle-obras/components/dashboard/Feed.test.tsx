@@ -39,6 +39,12 @@ describe("Feed", () => {
     expect(screen.queryByRole("button", { name: "Anular" })).not.toBeInTheDocument();
   });
 
+  it("no ofrece anular cuando conAnular es false (Mis reportes de terreno)", () => {
+    render(<Feed reportes={[base]} obraId="" conAnular={false} />);
+    expect(screen.getByText("20 kg · 1.1 Enfierradura losa P3")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Anular" })).not.toBeInTheDocument();
+  });
+
   it("tiene un estado vacío", () => {
     render(<Feed reportes={[]} obraId="o1" />);
     expect(screen.getByText("Todavía no hay reportes de terreno.")).toBeInTheDocument();
