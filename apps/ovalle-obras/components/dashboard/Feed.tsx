@@ -2,16 +2,25 @@ import type { ReporteFeed } from "@pyxis/ovalle-core/datos/feed";
 import { formatoCantidad, formatoMomento } from "@pyxis/ovalle-core/formato";
 import { BotonAnular } from "./BotonAnular";
 
+/** Ruta estable (misma URL en cada refresco, así el navegador reutiliza su caché) servida por app/fotos. */
+const urlFoto = (fotoPath: string) => `/fotos/${fotoPath.split("/").map(encodeURIComponent).join("/")}`;
+
 export function Feed({ reportes, obraId, conAnular = true }: { reportes: ReporteFeed[]; obraId: string; conAnular?: boolean }) {
   if (reportes.length === 0) return <p>Todavía no hay reportes de terreno.</p>;
   return (
     <ul className="space-y-3">
       {reportes.map((r) => (
         <li key={r.id} className={`flex gap-4 rounded border border-obra-line bg-white p-3 ${r.anulado ? "opacity-50" : ""}`}>
-          {r.fotoUrl && (
-            <a href={r.fotoUrl} target="_blank" rel="noreferrer" className="shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal de Storage */}
-              <img src={r.fotoUrl} alt={`Foto del reporte de ${r.autor}`} className="h-20 w-20 rounded object-cover" />
+          {r.fotoPath && (
+            <a href={urlFoto(r.fotoPath)} target="_blank" rel="noreferrer" className="shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element -- foto privada servida con caché propia por app/fotos */}
+              <img
+                src={urlFoto(r.fotoPath)}
+                alt={`Foto del reporte de ${r.autor}`}
+                loading="lazy"
+                decoding="async"
+                className="h-20 w-20 rounded object-cover"
+              />
             </a>
           )}
           <div className="flex-1 space-y-1">

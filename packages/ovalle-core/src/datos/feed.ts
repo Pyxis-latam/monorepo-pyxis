@@ -6,15 +6,24 @@ export type ReporteFeed = {
   comentario: string | null;
   creado_en: string;
   anulado: boolean;
+  /** URL firmada temporal de Storage; solo viene con `firmarFotos` (por defecto). */
   fotoUrl: string | null;
+  /** Ruta del objeto en el bucket `fotos`: inmutable, sirve para armar una URL estable. */
+  fotoPath: string | null;
   partida: { codigo: string; descripcion: string; unidad: string | null };
   autor: string;
 };
 
+/**
+ * `firmarFotos` (por defecto true) pide una URL firmada por foto: lo que necesita la app móvil.
+ * La web lo apaga y sirve las fotos desde `/fotos/<fotoPath>`, una ruta estable y cacheable
+ * (una URL firmada nueva en cada refresco obliga al navegador a bajar de nuevo todas las fotos).
+ */
 export async function cargarFeed(
   supabase: ClienteSupabase,
   filtro: { obraId?: string; autorId?: string },
   limite = 50,
+  { firmarFotos = true }: { firmarFotos?: boolean } = {},
 ): Promise<ReporteFeed[]> {
   let consulta = supabase
     .from("reportes")
@@ -30,7 +39,7 @@ export async function cargarFeed(
 
   const rutas = (data ?? []).map((r) => r.foto_path).filter((p): p is string => !!p);
   const urls = new Map<string, string>();
-  if (rutas.length > 0) {
+  if (firmarFotos && rutas.length > 0) {
     const { data: firmadas } = await supabase.storage.from("fotos").createSignedUrls(rutas, 3600);
     (firmadas ?? []).forEach((f) => {
       if (f.path && f.signedUrl) urls.set(f.path, f.signedUrl);
@@ -44,6 +53,7 @@ export async function cargarFeed(
     creado_en: r.creado_en,
     anulado: r.anulado,
     fotoUrl: r.foto_path ? (urls.get(r.foto_path) ?? null) : null,
+    fotoPath: r.foto_path,
     partida: r.partida!,
     // Terreno no puede leer perfiles ajenos; en "Mis reportes" el autor es uno mismo.
     autor: r.autor?.nombre ?? "",

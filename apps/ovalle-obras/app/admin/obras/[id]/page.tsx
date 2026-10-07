@@ -34,7 +34,7 @@ export default async function DashboardObra({
   const { obra, raices, resumen } = datos;
   const filtradas = filtrarArbol(raices, filtro, hoy);
   const siguienteEstado = obra.estado === "activa" ? "cerrada" : "activa";
-  const reportes = vista === "feed" ? await cargarFeed(supabase, { obraId: id }) : [];
+  const reportes = vista === "feed" ? await cargarFeed(supabase, { obraId: id }, 50, { firmarFotos: false }) : [];
 
   return (
     <div className="space-y-6">

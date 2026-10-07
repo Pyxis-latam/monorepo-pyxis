@@ -58,7 +58,7 @@ describe("cargarFeed", () => {
     expect(llamadas.filter((l) => l.metodo === "eq").map((l) => l.args)).toEqual([["autor", "u1"]]);
   });
 
-  it("convierte la cantidad a número, firma las fotos y deja null las que no tienen", async () => {
+  it("convierte la cantidad a número, firma las fotos por defecto y deja null las que no tienen", async () => {
     const { cliente, createSignedUrls, bucket } = clienteFalso(
       [fila({ id: "r1", foto_path: "o1/a.jpg" }), fila({ id: "r2", foto_path: null })],
       [{ path: "o1/a.jpg", signedUrl: "https://x/a.jpg?token=1" }],
@@ -67,8 +67,22 @@ describe("cargarFeed", () => {
     expect(bucket).toHaveBeenCalledWith("fotos");
     expect(createSignedUrls).toHaveBeenCalledWith(["o1/a.jpg"], 3600);
     expect(feed).toEqual([
-      { id: "r1", cantidad: 20.5, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: "https://x/a.jpg?token=1", partida, autor: "Juan Pérez" },
-      { id: "r2", cantidad: 20.5, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: null, partida, autor: "Juan Pérez" },
+      { id: "r1", cantidad: 20.5, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: "https://x/a.jpg?token=1", fotoPath: "o1/a.jpg", partida, autor: "Juan Pérez" },
+      { id: "r2", cantidad: 20.5, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: null, fotoPath: null, partida, autor: "Juan Pérez" },
+    ]);
+  });
+
+  it("con firmarFotos en false no firma nada: devuelve la ruta de la foto y fotoUrl null", async () => {
+    const { cliente, createSignedUrls, bucket } = clienteFalso(
+      [fila({ id: "r1", foto_path: "o1/a.jpg" }), fila({ id: "r2", foto_path: null })],
+      [{ path: "o1/a.jpg", signedUrl: "https://x/a.jpg?token=1" }],
+    );
+    const feed = await cargarFeed(cliente, { obraId: "o1" }, 50, { firmarFotos: false });
+    expect(bucket).not.toHaveBeenCalled();
+    expect(createSignedUrls).not.toHaveBeenCalled();
+    expect(feed.map((r) => [r.id, r.fotoPath, r.fotoUrl])).toEqual([
+      ["r1", "o1/a.jpg", null],
+      ["r2", null, null],
     ]);
   });
 
@@ -83,6 +97,7 @@ describe("cargarFeed", () => {
     const { cliente } = clienteFalso([fila({ foto_path: "o1/a.jpg" })], []);
     const feed = await cargarFeed(cliente, { obraId: "o1" });
     expect(feed[0].fotoUrl).toBeNull();
+    expect(feed[0].fotoPath).toBe("o1/a.jpg");
   });
 
   it("propaga el error de la consulta", async () => {

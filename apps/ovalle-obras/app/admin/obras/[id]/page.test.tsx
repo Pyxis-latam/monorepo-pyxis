@@ -60,7 +60,7 @@ describe("dashboard de la obra, vista Gantt", () => {
 
 describe("dashboard de la obra, vista Reportes", () => {
   const reporte = {
-    id: "r1", cantidad: 20, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: null,
+    id: "r1", cantidad: 20, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: null, fotoPath: null,
     partida: { codigo: "1.1", descripcion: "Enfierradura", unidad: "kg" }, autor: "Juan Pérez",
   };
 
@@ -69,7 +69,8 @@ describe("dashboard de la obra, vista Reportes", () => {
   it("carga y muestra los reportes de esta obra", async () => {
     jest.mocked(cargarFeed).mockResolvedValue([reporte]);
     await renderizar([conFechas], { vista: "feed" });
-    expect(cargarFeed).toHaveBeenCalledWith(expect.anything(), { obraId: "o1" });
+    // Las fotos se sirven desde /fotos/...: no se firman URLs en cada refresco.
+    expect(cargarFeed).toHaveBeenCalledWith(expect.anything(), { obraId: "o1" }, 50, { firmarFotos: false });
     expect(screen.getByText("Juan Pérez")).toBeInTheDocument();
     expect(screen.getByText("20 kg · 1.1 Enfierradura")).toBeInTheDocument();
   });
