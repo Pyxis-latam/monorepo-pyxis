@@ -5,6 +5,8 @@ process.loadEnvFile(".env.local");
 export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
+  // `next dev` compila cada ruta la primera vez que se pide.
+  expect: { timeout: 15_000 },
   use: { baseURL: "http://localhost:3001", trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

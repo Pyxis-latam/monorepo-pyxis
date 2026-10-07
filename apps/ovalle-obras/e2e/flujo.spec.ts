@@ -63,8 +63,9 @@ test("admin carga una obra, terreno reporta con foto y el admin lo ve en vivo", 
   await admin.waitForURL(/\/admin\/obras\/[0-9a-f-]+$/);
   const obraUrl = new URL(admin.url());
   const obraId = obraUrl.pathname.split("/").at(-1)!;
+  // Carga completa a propósito: sin sesión aún en el cliente es donde el canal de Realtime entraba como anónimo.
   await admin.goto(`${obraUrl.pathname}?vista=feed&filtro=todas`);
-  await expect(admin.getByText("En vivo")).toBeVisible({ timeout: 15_000 });
+  await expect(admin.getByText("En vivo", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   // Terreno reporta desde el celular.
   const terreno = await nuevaPagina(browser, true);
@@ -81,5 +82,8 @@ test("admin carga una obra, terreno reporta con foto y el admin lo ve en vivo", 
   // Admin lo ve sin recargar.
   await expect(admin.getByText("Juan Terreno")).toBeVisible({ timeout: 15_000 });
   await expect(admin.getByText("20 kg · 1.1 Enfierradura losa P3")).toBeVisible();
-  await expect(admin.getByRole("img", { name: "Foto del reporte de Juan Terreno" })).toBeVisible();
+  // La caja de la foto tiene tamaño fijo: un 404 en /fotos/... también sería "visible", así que se exige que decodificó.
+  const foto = admin.getByRole("img", { name: "Foto del reporte de Juan Terreno" });
+  await expect(foto).toBeVisible();
+  await expect.poll(() => foto.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0), { timeout: 15_000 }).toBe(true);
 });
