@@ -27,6 +27,39 @@ describe("rutas de auth", () => {
     expect(destinoSeguro("\\evil.com")).toBe("/");
   });
 
+  it("rechaza destinos con segmentos de punto que se normalizan a otro origen", () => {
+    expect(destinoSeguro("/.//evil.com")).toBe("/");
+    expect(destinoSeguro("/..//evil.com")).toBe("/");
+    expect(destinoSeguro("/a/..//evil.com")).toBe("/");
+    expect(destinoSeguro("/%2e//evil.com")).toBe("/");
+    expect(destinoSeguro("/./\\evil.com")).toBe("/");
+  });
+
+  it("nunca devuelve algo que el navegador resuelva fuera del origen", () => {
+    const variantes = [
+      "/%2e%2e//evil.com",
+      "/.%2e//evil.com",
+      "/a/./..//evil.com",
+      "/a/b/../..//evil.com",
+      "/.//evil.com?x=1#y",
+      "/\r/evil.com",
+      "/%5cevil.com",
+    ];
+    for (const variante of variantes) {
+      const salida = destinoSeguro(variante);
+      expect(new URL(salida, "http://interno.invalid").origin).toBe("http://interno.invalid");
+      expect(salida.startsWith("//")).toBe(false);
+    }
+  });
+
+  it("deja pasar rutas internas normales con query y puntos en el nombre", () => {
+    expect(destinoSeguro("/terreno/obras/1?x=1#y")).toBe("/terreno/obras/1?x=1#y");
+    expect(destinoSeguro("/admin/reportes?desde=2026-10-01&hasta=2026-10-31")).toBe(
+      "/admin/reportes?desde=2026-10-01&hasta=2026-10-31",
+    );
+    expect(destinoSeguro("/terreno/obras/1?siguiente=//evil.com")).toBe("/terreno/obras/1?siguiente=//evil.com");
+  });
+
   it("reconoce las rutas que no requieren sesión", () => {
     expect(esRutaPublica("/ingresar")).toBe(true);
     expect(esRutaPublica("/manifest.webmanifest")).toBe(true);

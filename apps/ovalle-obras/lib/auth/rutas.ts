@@ -18,10 +18,18 @@ export function rutaInicio(rol: Rol | null): string {
  */
 export function destinoSeguro(siguiente: string | null): string {
   if (!siguiente || !siguiente.startsWith("/")) return "/";
+  // Una ruta interna legítima no lleva "\" ni caracteres de control: el navegador los trata
+  // como "/" o los descarta, y así se camuflan destinos como `/\evil.com` o `/<TAB>/evil.com`.
+  if (/[\\\u0000-\u001f\u007f]/.test(siguiente)) return "/";
   try {
     const url = new URL(siguiente, ORIGEN_INTERNO);
     if (url.origin !== ORIGEN_INTERNO) return "/";
-    return url.pathname + url.search + url.hash;
+    const salida = url.pathname + url.search + url.hash;
+    // Los segmentos de punto se normalizan: `/.//evil.com` sale como `//evil.com`, que el
+    // navegador resuelve contra otro origen. Se valida también lo que se devuelve.
+    if (salida.startsWith("//") || salida.startsWith("/\\")) return "/";
+    if (new URL(salida, ORIGEN_INTERNO).origin !== ORIGEN_INTERNO) return "/";
+    return salida;
   } catch {
     return "/";
   }
