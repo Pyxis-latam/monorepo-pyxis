@@ -7,13 +7,27 @@ import { useSesion } from "@/lib/sesion";
 import { colores } from "@/lib/tema";
 
 export default function LayoutApp() {
-  const { cargando, perfil, sinAcceso, salir } = useSesion();
+  const { cargando, perfil, sinAcceso, errorPerfil, reintentar, salir } = useSesion();
 
   if (cargando) {
     return (
       <View style={estilos.centro}>
         <ActivityIndicator size="large" color={colores.acento} />
       </View>
+    );
+  }
+
+  if (errorPerfil) {
+    return (
+      <SafeAreaView style={estilos.centro}>
+        <Text style={estilos.texto}>No pudimos conectar con el servidor. Revisa tu señal.</Text>
+        <View style={estilos.boton}>
+          <Boton titulo="Reintentar" onPress={reintentar} />
+        </View>
+        <View style={estilos.boton}>
+          <Boton titulo="Salir" variante="secundario" onPress={salir} />
+        </View>
+      </SafeAreaView>
     );
   }
 
