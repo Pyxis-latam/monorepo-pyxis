@@ -56,7 +56,7 @@ describe("enviarReporte", () => {
   it("si falla la foto, avisa y no inserta", async () => {
     const c = cliente({ subirFoto: jest.fn().mockResolvedValue({ error: { message: "network" } }) });
     await expect(enviarReporte(c, datos, false)).resolves.toEqual({
-      ok: false, mensaje: "No se pudo subir la foto. Revisa la conexión y reintenta.", fotoSubida: false,
+      ok: false, mensaje: "No se pudo subir la foto. Revisa la conexión y reintenta.", fotoSubida: false, insertIntentado: false,
     });
     expect(c.insertarReporte).not.toHaveBeenCalled();
   });
@@ -64,14 +64,14 @@ describe("enviarReporte", () => {
   it("si falla el insert, recuerda que la foto ya subió", async () => {
     const c = cliente({ insertarReporte: jest.fn().mockResolvedValue({ error: { message: "network" } }) });
     await expect(enviarReporte(c, datos, false)).resolves.toEqual({
-      ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: true,
+      ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: true, insertIntentado: true,
     });
   });
 
   it("si falla el insert de un reporte sin foto, no dice que la foto subió", async () => {
     const c = cliente({ insertarReporte: jest.fn().mockResolvedValue({ error: { message: "network" } }) });
     await expect(enviarReporte(c, { ...datos, foto: null }, false)).resolves.toEqual({
-      ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: false,
+      ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: false, insertIntentado: true,
     });
   });
 });

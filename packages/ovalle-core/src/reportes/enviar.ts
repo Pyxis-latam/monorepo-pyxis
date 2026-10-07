@@ -36,17 +36,22 @@ export function clienteReportesDesde(supabase: SupabaseClient<Database>): Client
 
 const yaExiste = (e: { message: string; statusCode?: string }) => e.statusCode === "409" || /already exists/i.test(e.message);
 
+/**
+ * `fotoSubida` / `insertIntentado` le dicen al llamador qué quedó hecho si falla el envío.
+ * Con `insertIntentado` el reporte pudo llegar a la BD aunque no vimos la respuesta: el reintento debe
+ * conservar el mismo id (un id nuevo duplicaría el avance), y por lo tanto la misma foto.
+ */
 export async function enviarReporte(
   cliente: ClienteReportes,
   datos: { id: string; obraId: string; partidaId: string; autorId: string; cantidad: number; comentario: string; foto: FotoReporte | null },
   fotoYaSubida: boolean,
-): Promise<{ ok: true } | { ok: false; mensaje: string; fotoSubida: boolean }> {
+): Promise<{ ok: true } | { ok: false; mensaje: string; fotoSubida: boolean; insertIntentado: boolean }> {
   const ruta = datos.foto ? `${datos.obraId}/${datos.autorId}/${datos.id}.jpg` : null;
   if (datos.foto && !fotoYaSubida) {
     const { error } = await cliente.subirFoto(ruta!, datos.foto);
     // Ya existe: un intento anterior llegó a subirla aunque no vimos la respuesta. Es la misma foto (misma ruta = mismo reporte).
     if (error && !yaExiste(error)) {
-      return { ok: false, mensaje: "No se pudo subir la foto. Revisa la conexión y reintenta.", fotoSubida: false };
+      return { ok: false, mensaje: "No se pudo subir la foto. Revisa la conexión y reintenta.", fotoSubida: false, insertIntentado: false };
     }
   }
   const comentario = datos.comentario.trim();
@@ -61,7 +66,7 @@ export async function enviarReporte(
   });
   // 23505: el mismo reporte ya llegó (doble toque o reintento) → no se duplica.
   if (error && error.code !== "23505") {
-    return { ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: !!ruta };
+    return { ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: !!ruta, insertIntentado: true };
   }
   return { ok: true };
 }
