@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { prepararFoto } from "@/lib/fotos/preparar";
 import { nuevoIdReporte } from "@/lib/reportes/id";
 import { crearClienteNavegador } from "@/lib/supabase/navegador";
-import { formatoCantidad } from "@pyxis/ovalle-core/formato";
-import { parseCantidadIngresada } from "@pyxis/ovalle-core/reportes/cantidad";
+import { formatoCantidad, formatoPorcentaje } from "@pyxis/ovalle-core/formato";
+import { avanceConReporte, parseCantidadIngresada } from "@pyxis/ovalle-core/reportes/cantidad";
 import { clienteReportesDesde, enviarReporte } from "@pyxis/ovalle-core/reportes/enviar";
 
 type Partida = { id: string; codigo: string; descripcion: string; unidad: string; cantidad: number; ejecutado: number };
@@ -29,7 +29,6 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
   const [fallo, setFallo] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  const falta = Math.max(partida.cantidad - partida.ejecutado, 0);
   const lectura = texto.trim() ? parseCantidadIngresada(texto, modo, partida.cantidad) : null;
   const seExcede = lectura?.ok && partida.ejecutado + lectura.cantidad > partida.cantidad;
 
@@ -87,7 +86,9 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
         <div>
           <p className="text-sm text-gray-600">{partida.codigo}</p>
           <h1 className="text-xl font-bold">{partida.descripcion}</h1>
-          <p className="text-sm">Faltan {formatoCantidad(falta)} {partida.unidad} de {formatoCantidad(partida.cantidad)} {partida.unidad}</p>
+          <p className="text-sm">
+            Llevas {formatoCantidad(partida.ejecutado)} de {formatoCantidad(partida.cantidad)} {partida.unidad} ({formatoPorcentaje(avanceConReporte(partida))})
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -96,7 +97,8 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
             <button type="button" disabled={insertIntentado} onClick={() => setModo("porcentaje")} className={`flex-1 rounded-lg py-2 disabled:opacity-60 ${modo === "porcentaje" ? "bg-obra-fg text-white" : "bg-white"}`}>%</button>
           </div>
           <label className="block text-sm font-medium" htmlFor="cantidad">
-            {modo === "cantidad" ? `Cantidad ejecutada (${partida.unidad})` : "Porcentaje ejecutado"}
+            {/* Los reportes se suman: lo que se ingresa es el avance de este reporte, no el total acumulado. */}
+            {modo === "cantidad" ? `Avance de este reporte (${partida.unidad})` : "Avance de este reporte (%)"}
           </label>
           <input
             id="cantidad"
@@ -108,6 +110,7 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
             className="w-full rounded-lg border border-obra-line bg-white px-3 py-3 text-2xl disabled:opacity-60"
           />
           {modo === "porcentaje" && lectura?.ok && <p className="text-sm">= {formatoCantidad(lectura.cantidad)} {partida.unidad}</p>}
+          {lectura?.ok && <p className="text-sm">Con este reporte quedaría en {formatoPorcentaje(avanceConReporte(partida, lectura.cantidad))}</p>}
           {seExcede && <p className="text-sm text-obra-warn">Con este reporte se supera lo presupuestado. Puedes enviarlo igual.</p>}
         </div>
 

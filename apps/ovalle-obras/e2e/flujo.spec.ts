@@ -73,7 +73,7 @@ test("admin carga una obra, terreno reporta con foto y el admin lo ve en vivo", 
   await terreno.waitForURL("**/terreno**");
   await terreno.goto(`/terreno/obras/${obraId}`);
   await terreno.getByRole("link", { name: /Enfierradura losa P3/ }).first().click();
-  await terreno.getByLabel("Cantidad ejecutada (kg)").fill("20");
+  await terreno.getByLabel("Avance de este reporte (kg)").fill("20");
   await terreno.getByLabel("Foto (opcional)").setInputFiles({ name: "foto.jpg", mimeType: "image/jpeg", buffer: JPEG });
   await terreno.getByLabel("Comentario (opcional)").fill("Sector norte listo");
   await terreno.getByRole("button", { name: "Enviar reporte" }).click();

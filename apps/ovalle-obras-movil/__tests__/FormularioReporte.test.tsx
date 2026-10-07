@@ -67,7 +67,7 @@ async function abrir() {
   return { alEnviar, user };
 }
 
-const campoCantidad = () => screen.getByLabelText("Cantidad ejecutada (kg)");
+const campoCantidad = () => screen.getByLabelText("Avance de este reporte (kg)");
 const campoComentario = () => screen.getByLabelText("Comentario (opcional)");
 
 async function escribirCantidad(user: Usuario, texto: string) {
@@ -84,14 +84,25 @@ const enviar = (user: Usuario) => user.press(screen.getByRole("button", { name: 
 const reintentar = (user: Usuario) => user.press(screen.getByRole("button", { name: "Reintentar" }));
 
 describe("cantidad", () => {
-  it("muestra lo que falta y avisa si se pasa de lo presupuestado", async () => {
+  it("muestra cuánto lleva la partida, en cuánto quedaría con este reporte y avisa si se pasa de lo presupuestado", async () => {
     const { user } = await abrir();
 
-    expect(screen.getByText("Faltan 200 kg de 4.200 kg")).toBeOnTheScreen();
+    expect(screen.getByText("Llevas 4.000 de 4.200 kg (95,2%)")).toBeOnTheScreen();
+    // Los reportes se suman: el campo es el avance de este reporte, no el total acumulado.
+    expect(screen.getByText("Avance de este reporte (kg)")).toBeOnTheScreen();
+    expect(screen.queryByText(/quedaría en/)).not.toBeOnTheScreen();
     expect(screen.queryByText(/se supera lo presupuestado/)).not.toBeOnTheScreen();
 
     await escribirCantidad(user, "300");
+    expect(screen.getByText("Con este reporte quedaría en 102,4%")).toBeOnTheScreen();
     expect(screen.getByText("Con este reporte se supera lo presupuestado. Puedes enviarlo igual.")).toBeOnTheScreen();
+  });
+
+  it("no dice en cuánto quedaría si la cantidad no es válida", async () => {
+    const { user } = await abrir();
+
+    await escribirCantidad(user, "0");
+    expect(screen.queryByText(/quedaría en/)).not.toBeOnTheScreen();
   });
 
   it("usa teclado decimal y limita el comentario a 1000 caracteres", async () => {
@@ -107,8 +118,10 @@ describe("cantidad", () => {
     const { user } = await abrir();
 
     await user.press(screen.getByRole("button", { name: "%" }));
-    await user.type(screen.getByLabelText("Porcentaje ejecutado"), "1");
+    expect(screen.getByText("Avance de este reporte (%)")).toBeOnTheScreen();
+    await user.type(screen.getByLabelText("Avance de este reporte (%)"), "1");
     expect(screen.getByText("= 42 kg")).toBeOnTheScreen();
+    expect(screen.getByText("Con este reporte quedaría en 96,2%")).toBeOnTheScreen();
 
     await enviar(user);
     expect(mockEnviarReporte.mock.calls[0][1].cantidad).toBe(42);

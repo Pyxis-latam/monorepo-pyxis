@@ -7,8 +7,8 @@ import {
 } from "expo-image-picker";
 import { useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { formatoCantidad } from "@pyxis/ovalle-core/formato";
-import { parseCantidadIngresada } from "@pyxis/ovalle-core/reportes/cantidad";
+import { formatoCantidad, formatoPorcentaje } from "@pyxis/ovalle-core/formato";
+import { avanceConReporte, parseCantidadIngresada } from "@pyxis/ovalle-core/reportes/cantidad";
 import { clienteReportesDesde, enviarReporte } from "@pyxis/ovalle-core/reportes/enviar";
 import { Boton } from "@/components/Boton";
 import { prepararFotoMovil } from "@/lib/fotos";
@@ -62,7 +62,6 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
   const [fallo, setFallo] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  const falta = Math.max(partida.cantidad - partida.ejecutado, 0);
   const lectura = texto.trim() ? parseCantidadIngresada(texto, modo, partida.cantidad) : null;
   const seExcede = lectura?.ok && partida.ejecutado + lectura.cantidad > partida.cantidad;
   const bloqueado = insertIntentado || enviando;
@@ -147,7 +146,8 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
     }
   }
 
-  const etiquetaCantidad = modo === "cantidad" ? `Cantidad ejecutada (${partida.unidad})` : "Porcentaje ejecutado";
+  // Los reportes se suman: lo que se ingresa es el avance de este reporte, no el total acumulado.
+  const etiquetaCantidad = modo === "cantidad" ? `Avance de este reporte (${partida.unidad})` : "Avance de este reporte (%)";
 
   return (
     <ScrollView
@@ -159,7 +159,9 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
       <View style={estilos.grupo}>
         <Text style={estilos.codigo}>{partida.codigo}</Text>
         <Text style={estilos.titulo}>{partida.descripcion}</Text>
-        <Text style={estilos.texto}>{`Faltan ${formatoCantidad(falta)} ${partida.unidad} de ${formatoCantidad(partida.cantidad)} ${partida.unidad}`}</Text>
+        <Text style={estilos.texto}>
+          {`Llevas ${formatoCantidad(partida.ejecutado)} de ${formatoCantidad(partida.cantidad)} ${partida.unidad} (${formatoPorcentaje(avanceConReporte(partida))})`}
+        </Text>
       </View>
 
       <View style={estilos.grupo}>
@@ -178,6 +180,9 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
         />
         {modo === "porcentaje" && lectura?.ok ? (
           <Text style={estilos.texto}>{`= ${formatoCantidad(lectura.cantidad)} ${partida.unidad}`}</Text>
+        ) : null}
+        {lectura?.ok ? (
+          <Text style={estilos.texto}>{`Con este reporte quedaría en ${formatoPorcentaje(avanceConReporte(partida, lectura.cantidad))}`}</Text>
         ) : null}
         {seExcede ? (
           <Text style={estilos.aviso}>Con este reporte se supera lo presupuestado. Puedes enviarlo igual.</Text>

@@ -23,11 +23,20 @@ describe("FormularioReporte", () => {
     prepararFoto.mockReset().mockImplementation(async (f: File) => f);
   });
 
-  it("muestra lo que falta y avisa si se pasa de lo presupuestado", async () => {
+  it("muestra cuánto lleva la partida, en cuánto quedaría con este reporte y avisa si se pasa de lo presupuestado", async () => {
     render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-    expect(screen.getByText("Faltan 200 kg de 4.200 kg")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "300");
+    expect(screen.getByText("Llevas 4.000 de 4.200 kg (95,2%)")).toBeInTheDocument();
+    expect(screen.queryByText(/quedaría en/)).not.toBeInTheDocument();
+    // Los reportes se suman: el campo es el avance de este reporte, no el total acumulado.
+    await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "300");
+    expect(screen.getByText("Con este reporte quedaría en 102,4%")).toBeInTheDocument();
     expect(screen.getByText("Con este reporte se supera lo presupuestado. Puedes enviarlo igual.")).toBeInTheDocument();
+  });
+
+  it("no dice en cuánto quedaría si la cantidad no es válida", async () => {
+    render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
+    await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "0");
+    expect(screen.queryByText(/quedaría en/)).not.toBeInTheDocument();
   });
 
   it("envía con el mismo id en el reintento y conserva lo escrito si falla", async () => {
@@ -35,7 +44,7 @@ describe("FormularioReporte", () => {
       .mockResolvedValueOnce({ ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: true, insertIntentado: true })
       .mockResolvedValueOnce({ ok: true });
     render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-    await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "12,5");
+    await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "12,5");
     await userEvent.type(screen.getByLabelText("Comentario (opcional)"), "Sector norte");
     await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo enviar el reporte");
@@ -59,7 +68,7 @@ describe("FormularioReporte", () => {
     it("si falló la subida (no se intentó insertar), otra foto va con un id nuevo y se sube", async () => {
       enviarReporte.mockResolvedValueOnce(FALLO_FOTO).mockResolvedValueOnce({ ok: true });
       render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "5");
       await userEvent.upload(screen.getByLabelText("Foto (opcional)"), vieja);
       await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
       await screen.findByRole("alert");
@@ -78,7 +87,7 @@ describe("FormularioReporte", () => {
     it("si falló la subida, quitar la foto también usa un id nuevo y no la manda", async () => {
       enviarReporte.mockResolvedValueOnce(FALLO_FOTO).mockResolvedValueOnce({ ok: true });
       render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "5");
       await userEvent.upload(screen.getByLabelText("Foto (opcional)"), vieja);
       await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
       await screen.findByRole("alert");
@@ -95,7 +104,7 @@ describe("FormularioReporte", () => {
     it("si falló el insert (pudo llegar a la BD), bloquea la foto y reintenta con el mismo id", async () => {
       enviarReporte.mockResolvedValueOnce(FALLO_INSERT).mockResolvedValueOnce({ ok: true });
       render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "5");
       await userEvent.upload(screen.getByLabelText("Foto (opcional)"), vieja);
       await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
       await screen.findByRole("alert");
@@ -118,20 +127,20 @@ describe("FormularioReporte", () => {
     it("bloquea cantidad, modo y comentario, y el reintento manda el mismo id con los mismos datos", async () => {
       enviarReporte.mockResolvedValueOnce(FALLO_INSERT).mockResolvedValueOnce({ ok: true });
       render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "12,5");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "12,5");
       await userEvent.type(screen.getByLabelText("Comentario (opcional)"), "Sector norte");
       await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
       await screen.findByRole("alert");
 
       // Si el primer insert llegó, un reintento con otros valores daría 23505 ("enviado") y la BD guardaría los viejos.
-      expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeDisabled();
+      expect(screen.getByLabelText("Avance de este reporte (kg)")).toBeDisabled();
       expect(screen.getByRole("button", { name: "kg" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "%" })).toBeDisabled();
       expect(screen.getByLabelText("Comentario (opcional)")).toBeDisabled();
       expect(screen.getByLabelText("Foto (opcional)")).toBeDisabled();
       expect(screen.getByText(NOTA_FIJO)).toBeInTheDocument();
 
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "9");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "9");
       await userEvent.click(screen.getByRole("button", { name: "%" }));
       await userEvent.type(screen.getByLabelText("Comentario (opcional)"), " y sur");
       await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
@@ -147,12 +156,12 @@ describe("FormularioReporte", () => {
       const foto = new File(["a"], "a.jpg", { type: "image/jpeg" });
       enviarReporte.mockRejectedValueOnce(new Error("Failed to fetch")).mockResolvedValueOnce({ ok: true });
       render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "5");
       await userEvent.upload(screen.getByLabelText("Foto (opcional)"), foto);
       await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Failed to fetch");
-      expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeDisabled();
+      expect(screen.getByLabelText("Avance de este reporte (kg)")).toBeDisabled();
       expect(screen.getByRole("button", { name: "%" })).toBeDisabled();
       expect(screen.getByLabelText("Comentario (opcional)")).toBeDisabled();
       expect(screen.getByLabelText("Foto (opcional)")).toBeDisabled();
@@ -169,14 +178,14 @@ describe("FormularioReporte", () => {
     it("si falla preparar la foto (aún no se envió nada), no deja fijo el reporte", async () => {
       prepararFoto.mockRejectedValueOnce(new Error("La foto es muy pesada y no se pudo reducir. Prueba con otra."));
       render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "5");
       await userEvent.upload(screen.getByLabelText("Foto (opcional)"), new File(["a"], "a.jpg", { type: "image/jpeg" }));
       await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("La foto es muy pesada");
       expect(enviarReporte).not.toHaveBeenCalled();
       expect(screen.getByLabelText("Foto (opcional)")).toBeEnabled();
-      expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeEnabled();
+      expect(screen.getByLabelText("Avance de este reporte (kg)")).toBeEnabled();
       expect(screen.queryByText(NOTA_FIJO)).not.toBeInTheDocument();
     });
   });
@@ -185,12 +194,12 @@ describe("FormularioReporte", () => {
     let terminar: (r: unknown) => void = () => {};
     enviarReporte.mockReturnValue(new Promise((resolve) => (terminar = resolve)));
     render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-    await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
-    expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeEnabled();
+    await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "5");
+    expect(screen.getByLabelText("Avance de este reporte (kg)")).toBeEnabled();
     await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
 
     expect(await screen.findByRole("button", { name: "Enviando…" })).toBeDisabled();
-    expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeDisabled();
+    expect(screen.getByLabelText("Avance de este reporte (kg)")).toBeDisabled();
     expect(screen.getByLabelText("Comentario (opcional)")).toBeDisabled();
     expect(screen.getByLabelText("Foto (opcional)")).toBeDisabled();
     expect(screen.getByRole("button", { name: "%" })).toBeDisabled();
@@ -203,15 +212,16 @@ describe("FormularioReporte", () => {
     enviarReporte.mockResolvedValue({ ok: true });
     render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
     await userEvent.click(screen.getByRole("button", { name: "%" }));
-    await userEvent.type(screen.getByLabelText("Porcentaje ejecutado"), "1");
+    await userEvent.type(screen.getByLabelText("Avance de este reporte (%)"), "1");
     expect(screen.getByText("= 42 kg")).toBeInTheDocument();
+    expect(screen.getByText("Con este reporte quedaría en 96,2%")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
     expect(enviarReporte.mock.calls[0][1].cantidad).toBe(42);
   });
 
   it("no envía cantidades inválidas", async () => {
     render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
-    await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "0");
+    await userEvent.type(screen.getByLabelText("Avance de este reporte (kg)"), "0");
     await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Ingresa una cantidad mayor que 0.");
     expect(enviarReporte).not.toHaveBeenCalled();
