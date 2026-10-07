@@ -66,4 +66,11 @@ describe("rutas de auth", () => {
     expect(esRutaPublica("/salir")).toBe(true);
     expect(esRutaPublica("/admin")).toBe(false);
   });
+
+  it("deja públicos los íconos de la app (pestaña, pantalla de inicio e instalación)", () => {
+    for (const icono of ["/icon.png", "/apple-icon.png", "/icon-192.png", "/icon-512.png"]) {
+      expect(esRutaPublica(icono)).toBe(true);
+    }
+    expect(esRutaPublica("/icon.svg")).toBe(false);
+  });
 });

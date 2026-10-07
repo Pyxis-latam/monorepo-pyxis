@@ -12,12 +12,13 @@ Diseño: [`docs/superpowers/specs/2026-10-06-ovalle-obras-design.md`](../../docs
 ```
 apps/riolimari-obras/
   app/               rutas de Next.js: /ingresar, /admin/**, /terreno/**, /fotos/**
-  components/        componentes de UI (auth, dashboard, importacion, terreno, usuarios)
+  components/        componentes de UI (auth, dashboard, importacion, marca, terreno, usuarios)
   lib/               código propio de la web: excel/, exportar/, gantt/, fotos/, auth/,
-                     usuarios/, supabase/ (clientes), env.ts
+                     usuarios/, supabase/ (clientes), env.ts, marca.ts (nombre, empresa, logo)
+  public/            marca/logo-blanco.png e íconos del manifest
   proxy.ts           refresca la sesión y redirige a /ingresar si no hay usuario
   supabase/          config.toml, migraciones SQL, plantilla del correo y tests de BD
-  scripts/           env-local.mjs y crear-admin.mjs
+  scripts/           env-local.mjs, crear-admin.mjs y generar-iconos.mjs
   e2e/               prueba de punta a punta (Playwright)
 packages/riolimari-core/  @pyxis/riolimari-core — lógica de dominio compartida
                           (fechas, formato, cálculos de avance, lista de terreno, envío
@@ -67,6 +68,19 @@ migración:
 npm run db:reset -w @pyxis/riolimari-obras   # la aplica en la base local
 npm run db:types -w @pyxis/riolimari-obras   # regenera packages/riolimari-core/src/database.types.ts
 ```
+
+### Marca (colores, logo e íconos)
+
+- **Colores** (los del sitio de Río Limarí), en `app/globals.css`: `obra-accent` `#004D69` (azul
+  petróleo: botones, barras, encabezados), `obra-accent-strong` `#002735` (hover/presionado) y
+  `obra-secondary` `#477B8E`. El verde `#4FA700` del sitio es solo decorativo: sobre blanco no
+  alcanza el contraste para texto. La app móvil usa el mismo azul (`lib/tema.ts`).
+- **Logo:** `public/marca/logo-blanco.png` (591 × 482). Es blanco sobre transparente, así que va
+  siempre sobre `bg-obra-accent` (`components/marca/Logo.tsx`): ingreso, encabezados e informe PDF.
+- **Íconos:** `npm run iconos -w @pyxis/riolimari-obras` los regenera desde el logo
+  (`scripts/generar-iconos.mjs`, con `sharp`): `app/icon.png`, `app/apple-icon.png`,
+  `public/icon-192.png` y `public/icon-512.png` de la web, y `assets/icon.png`,
+  `assets/adaptive-icon.png`, `assets/splash-icon.png` y `assets/favicon.png` de la app móvil.
 
 ## Tests
 

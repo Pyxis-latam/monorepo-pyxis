@@ -31,6 +31,8 @@ apps/riolimari-obras-movil/
   components/   Boton, BotonSalir, FormularioReporte, TarjetaPartida
   lib/          supabase.ts (cliente; sesión en AsyncStorage), sesion.tsx, fotos.ts, tema.ts
   scripts/      env-local.mjs
+  assets/       ícono, ícono adaptativo, splash y favicon (los genera `npm run iconos -w @pyxis/riolimari-obras`)
+                y marca/logo-blanco.png (pantalla de ingreso)
   __tests__/    pruebas unitarias (jest-expo + Testing Library de React Native)
 ```
 

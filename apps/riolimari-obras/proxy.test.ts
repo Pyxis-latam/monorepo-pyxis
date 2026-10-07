@@ -9,7 +9,9 @@ describe("matcher del proxy", () => {
     expect(coincide("/_next/static/chunk.js")).toBe(false);
     expect(coincide("/_next/image")).toBe(false);
     expect(coincide("/favicon.ico")).toBe(false);
-    expect(coincide("/icon.svg")).toBe(false);
+    expect(coincide("/icon.png")).toBe(false);
+    expect(coincide("/apple-icon.png")).toBe(false);
+    expect(coincide("/icon-192.png")).toBe(false);
     // El logo se ve en /ingresar, antes de tener sesión.
     expect(coincide("/marca/logo-blanco.png")).toBe(false);
     expect(coincide("/fotos/obra.jpg")).toBe(false);

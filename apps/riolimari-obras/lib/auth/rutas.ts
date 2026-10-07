@@ -1,6 +1,15 @@
 export type Rol = "admin" | "terreno";
 
-const PUBLICAS = ["/ingresar", "/salir", "/manifest.webmanifest", "/icon.svg"];
+// Los íconos (app/icon.png, app/apple-icon.png y los del manifest en public/) se piden sin sesión.
+const PUBLICAS = [
+  "/ingresar",
+  "/salir",
+  "/manifest.webmanifest",
+  "/icon.png",
+  "/apple-icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
+];
 
 // Origen ficticio: sirve solo para que el parser de URL resuelva el destino igual que el navegador.
 const ORIGEN_INTERNO = "http://interno.invalid";

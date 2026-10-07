@@ -15,7 +15,8 @@
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local --schema public > ../../packages/riolimari-core/src/database.types.ts",
     "env:local": "node scripts/env-local.mjs",
-    "crear-admin": "node --env-file=.env.local scripts/crear-admin.mjs"
+    "crear-admin": "node --env-file=.env.local scripts/crear-admin.mjs",
+    "iconos": "node scripts/generar-iconos.mjs"
   },
   "dependencies": {
     "@pyxis/riolimari-core": "*",
