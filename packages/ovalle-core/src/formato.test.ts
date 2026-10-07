@@ -1,4 +1,4 @@
-import { formatoCLP, formatoPorcentaje, formatoFecha, formatoCantidad, slug } from "./formato";
+import { formatoCLP, formatoPorcentaje, formatoFecha, formatoCantidad, formatoMomento, slug } from "./formato";
 
 describe("formato", () => {
   it("formatea pesos chilenos sin decimales", () => {
@@ -24,5 +24,15 @@ describe("formato", () => {
 
   it("genera slugs ASCII para nombres de archivo", () => {
     expect(slug("Edificio Ñuñoa — Etapa 2")).toBe("edificio-nunoa-etapa-2");
+  });
+
+  it("formatea el instante en hora de Chile como dd-mm-aaaa HH:MM", () => {
+    // Noviembre: horario de verano (UTC-3).
+    expect(formatoMomento("2026-11-05T14:32:00Z")).toBe("05-11-2026 11:32");
+    // Julio: horario de invierno (UTC-4).
+    expect(formatoMomento("2026-07-05T14:32:00Z")).toBe("05-07-2026 10:32");
+    // Medianoche en Chile es 00:00, no 24:00, y cambia el día respecto de UTC.
+    expect(formatoMomento("2026-11-05T03:00:00Z")).toBe("05-11-2026 00:00");
+    expect(formatoMomento("2026-11-05T02:59:00Z")).toBe("04-11-2026 23:59");
   });
 });

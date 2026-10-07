@@ -1,12 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import { construirArbol } from "@pyxis/ovalle-core/avance/arbol";
 import type { PartidaPlan } from "@pyxis/ovalle-core/avance/tipos";
+import { cargarFeed } from "@pyxis/ovalle-core/datos/feed";
 import { cargarAvanceObra } from "@pyxis/ovalle-core/datos/obra";
 import { hoyEnChile } from "@pyxis/ovalle-core/fechas";
 import DashboardObra from "./page";
 
 jest.mock("@/lib/supabase/servidor", () => ({ crearClienteServidor: jest.fn().mockResolvedValue({}) }));
 jest.mock("@pyxis/ovalle-core/datos/obra", () => ({ cargarAvanceObra: jest.fn() }));
+jest.mock("@pyxis/ovalle-core/datos/feed", () => ({ cargarFeed: jest.fn() }));
+// El refresco en vivo abre un canal Realtime del navegador; aquí solo importa que esté en la página.
+jest.mock("@/components/dashboard/RefrescoEnVivo", () => ({
+  RefrescoEnVivo: ({ obraId }: { obraId: string }) => `Refresco en vivo de ${obraId}`,
+}));
 jest.mock("./acciones", () => ({ cambiarEstadoObra: jest.fn() }));
 jest.mock("next/navigation", () => ({ notFound: jest.fn() }));
 
@@ -49,5 +55,34 @@ describe("dashboard de la obra, vista Gantt", () => {
     await renderizar([conFechas], { vista: "gantt", filtro: "todas" });
     expect(screen.getByText("1.1 Enfierradura")).toBeInTheDocument();
     expect(screen.queryByText(SIN_PARTIDAS)).not.toBeInTheDocument();
+  });
+});
+
+describe("dashboard de la obra, vista Reportes", () => {
+  const reporte = {
+    id: "r1", cantidad: 20, comentario: null, creado_en: "2026-11-05T14:32:00Z", anulado: false, fotoUrl: null,
+    partida: { codigo: "1.1", descripcion: "Enfierradura", unidad: "kg" }, autor: "Juan Pérez",
+  };
+
+  beforeEach(() => jest.mocked(cargarFeed).mockReset());
+
+  it("carga y muestra los reportes de esta obra", async () => {
+    jest.mocked(cargarFeed).mockResolvedValue([reporte]);
+    await renderizar([conFechas], { vista: "feed" });
+    expect(cargarFeed).toHaveBeenCalledWith(expect.anything(), { obraId: "o1" });
+    expect(screen.getByText("Juan Pérez")).toBeInTheDocument();
+    expect(screen.getByText("20 kg · 1.1 Enfierradura")).toBeInTheDocument();
+  });
+
+  it("muestra el estado vacío cuando no hay reportes", async () => {
+    jest.mocked(cargarFeed).mockResolvedValue([]);
+    await renderizar([conFechas], { vista: "feed" });
+    expect(screen.getByText("Todavía no hay reportes de terreno.")).toBeInTheDocument();
+  });
+
+  it("no carga el feed en las otras vistas, pero deja el refresco en vivo siempre visible", async () => {
+    await renderizar([conFechas], { vista: "tabla" });
+    expect(cargarFeed).not.toHaveBeenCalled();
+    expect(screen.getByText("Refresco en vivo de o1")).toBeInTheDocument();
   });
 });
