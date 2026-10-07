@@ -24,7 +24,8 @@ export async function crearUsuario(_prev: EstadoFormulario, formData: FormData):
     return { ok: false, mensaje: yaExiste ? "Ya existe un usuario con ese email." : "No se pudo crear el usuario." };
   }
   revalidatePath("/admin/usuarios");
-  return { ok: true, mensaje: `${v.nombre} ya puede ingresar con un código enviado a ${v.email}.` };
+  // Crear el usuario no envía ningún email: el código de ingreso lo pide la persona al entrar.
+  return { ok: true, mensaje: `${v.nombre} ya tiene acceso. Avísale que entre a la app con ${v.email} y pida su código de ingreso.` };
 }
 
 export async function cambiarActivo(usuarioId: string, activo: boolean): Promise<void> {

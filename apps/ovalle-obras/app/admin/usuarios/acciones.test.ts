@@ -88,7 +88,8 @@ describe("crearUsuario", () => {
     ]);
     expect(estado).toEqual({
       ok: true,
-      mensaje: "Juan Pérez ya puede ingresar con un código enviado a juan@ovalle.cl.",
+      // No se envía ningún email al crear el usuario: el código lo pide él al entrar.
+      mensaje: "Juan Pérez ya tiene acceso. Avísale que entre a la app con juan@ovalle.cl y pida su código de ingreso.",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/usuarios");
   });
