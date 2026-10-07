@@ -71,6 +71,8 @@ it("muestra cantidad, partida, comentario, hora de Chile y foto de cada reporte"
   const fotos = screen.getAllByLabelText("Foto del reporte");
   expect(fotos).toHaveLength(1);
   expect(fotos[0].props.source).toEqual({ uri: "https://x/f.jpg" });
+  // Sin `accessible`, en iOS la imagen no es un elemento de accesibilidad y VoiceOver no lee la etiqueta.
+  expect(fotos[0].props.accessible).toBe(true);
   expect(screen.getByText("5 m3 · 1.2 Hormigón losa P3")).toBeOnTheScreen();
   expect(screen.getByText("06-11-2026 06:05")).toBeOnTheScreen();
 });
@@ -152,6 +154,7 @@ it("si falla al refrescar avisa y conserva la lista anterior", async () => {
   });
 
   expect(screen.getByText(ERROR_CARGA)).toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toHaveTextContent(ERROR_CARGA);
   expect(screen.getByText("20 kg · 1.1 Enfierradura losa P3")).toBeOnTheScreen();
   expect(screen.queryByText("Todavía no has enviado reportes.")).not.toBeOnTheScreen();
 });

@@ -25,7 +25,8 @@ function TarjetaReporte({ reporte }: { reporte: ReporteFeed }) {
       <Text style={estilos.titulo}>{`${medida} · ${partida.codigo} ${partida.descripcion}`}</Text>
       {comentario ? <Text style={estilos.comentario}>{comentario}</Text> : null}
       {fotoUrl ? (
-        <Image accessibilityLabel="Foto del reporte" source={{ uri: fotoUrl }} resizeMode="cover" style={estilos.foto} />
+        // `accessible`: en iOS la imagen no es un elemento de accesibilidad sin él y VoiceOver no lee la etiqueta.
+        <Image accessible accessibilityLabel="Foto del reporte" source={{ uri: fotoUrl }} resizeMode="cover" style={estilos.foto} />
       ) : null}
     </View>
   );
@@ -98,7 +99,7 @@ export default function MisReportes() {
   return (
     <View style={estilos.pantalla}>
       {actualizacionFallida ? (
-        <Text accessibilityLiveRegion="polite" style={estilos.fallo}>
+        <Text accessibilityRole="alert" style={estilos.fallo}>
           {ERROR_CARGA}
         </Text>
       ) : null}

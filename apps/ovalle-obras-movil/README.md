@@ -18,7 +18,8 @@ Qué hace:
 - **Mis reportes:** tus últimos 30 reportes (cantidad, partida, comentario, foto, hora de Chile
   y si fueron anulados). Se actualiza al tirar hacia abajo y cada vez que vuelves a la pestaña
   (las fotos se piden con URL firmadas que duran 1 hora, así que una pantalla que quedó abierta
-  mucho rato no muestra fotos rotas). Sin señal avisa y deja la lista anterior.
+  mucho rato no muestra fotos rotas). Sin señal avisa y deja la lista anterior. Terreno solo ve
+  reportes de obras activas (RLS): los de una obra cerrada desaparecen de esta lista.
 - **Salir** desde el encabezado (pide confirmar: volver a entrar exige un código por email).
 
 ## Cómo está organizado
@@ -62,7 +63,8 @@ npm run dev -w @pyxis/ovalle-obras-movil             # expo start: escanea el QR
   IPv4 no interna que no sea de un adaptador virtual (Hyper-V/WSL, Docker, VirtualBox, VMware…). Si elige
   una IP equivocada, pásala a mano: `npm run env:local -w @pyxis/ovalle-obras-movil -- 192.168.1.20`.
   Falla con un mensaje claro si falta el `.env.local` de la web.
-- `.env.local` está ignorado por git. Expo lee las variables `EXPO_PUBLIC_*` al empaquetar:
+- `.env.local` está ignorado por git y guarda una IP fija de tu red: si cambias de red (otro Wi-Fi, otra IP
+  del PC), vuelve a correr `env:local` y reinicia Metro. Expo lee las variables `EXPO_PUBLIC_*` al empaquetar:
   después de cambiarlo, reinicia `npm run dev`. Si el teléfono no conecta con Supabase, revisa que el
   firewall del PC permita el puerto 54321.
 - `npm run android` / `npm run ios` abren la app en un emulador o dispositivo conectado
@@ -110,12 +112,17 @@ tiendas, de **Google Play** y **Apple Developer**.
 1. **Backend:** el Supabase de producción ya debe estar listo según la sección "Producción" de la
    [web](../ovalle-obras/README.md#producción) (migraciones aplicadas, registro abierto desactivado,
    SMTP propio para que el código de ingreso llegue al personal de terreno).
-2. **Variables:** en el momento de compilar, `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-   deben apuntar al Supabase de producción (la URL del proyecto y la anon key, no la `service_role`).
-   Una forma es un archivo `apps/ovalle-obras-movil/.env` con esos dos valores (la anon key es pública por
-   diseño; el equipo decide si lo versiona); otra, definirlas como variables de entorno del proyecto en
-   Expo/EAS. Cuidado: un `.env.local` tiene prioridad sobre `.env`, así que no debe quedar el de desarrollo
-   (con la IP de tu red) al compilar desde tu PC.
+2. **Variables:** al compilar, `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` deben apuntar al
+   Supabase de producción (la URL del proyecto y la anon key, no la `service_role`). Sin ellas la app falla
+   apenas arranca (`lib/supabase.ts` lanza un error al cargar), así que un build sin variables no sirve.
+   - **Builds en la nube de EAS (lo normal):** define las dos como variables de entorno del proyecto en Expo,
+     para el entorno que use el perfil de build (en el dashboard de expo.dev o con `npx eas env:create`).
+     Es la vía principal: los archivos `.env*` de esta carpeta **no** llegan a EAS, porque están ignorados por
+     git (`.gitignore` de la raíz ignora `.env*`) y EAS Build no sube lo que git ignora.
+   - **Builds locales** (`eas build --local`, `expo run:*` en tu PC): sirve un archivo
+     `apps/ovalle-obras-movil/.env` con esos dos valores. Sigue ignorado por git y **no** se sube a EAS. Ojo:
+     `.env.local` tiene prioridad sobre `.env`, así que el de desarrollo (con la IP de tu red) no debe quedar
+     ahí al compilar localmente.
 3. **Identificadores:** `app.json` todavía no define `android.package` ni `ios.bundleIdentifier`; hay que
    elegirlos antes del primer build (después de publicar en una tienda ya no se pueden cambiar).
 4. **APK interno (Android):** con la cuenta de Expo, `npx eas login`, vincular el proyecto (`npx eas init`)
