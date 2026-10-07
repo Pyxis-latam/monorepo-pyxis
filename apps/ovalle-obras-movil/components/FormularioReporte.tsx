@@ -20,6 +20,8 @@ type Modo = "cantidad" | "porcentaje";
 /** Foto elegida: `ancho`/`alto` son los que informa el selector, los usa `prepararFotoMovil`. */
 type Foto = { uri: string; ancho: number; alto: number };
 
+const NOTA_FIJO = "Este reporte ya se intentó enviar. Reintenta tal cual; si necesitas corregirlo, revisa Mis reportes después.";
+
 type Props = {
   obraId: string;
   autorId: string;
@@ -48,7 +50,8 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
   const fotoSubida = useRef(false);
   // Bytes ya preparados de la foto elegida: los reintentos no vuelven a decodificarla.
   const preparada = useRef<{ uri: string; bytes: ArrayBuffer } | null>(null);
-  // Tras un insert intentado el reporte pudo llegar a la BD (solo se perdió la respuesta): desde ahí el id y la foto quedan fijos.
+  // Tras un insert intentado el reporte pudo llegar a la BD (solo se perdió la respuesta): desde ahí el id, la foto y los
+  // valores quedan fijos. Un reintento con otros valores daría 23505 ("enviado") y la BD conservaría los primeros.
   const [insertIntentado, setInsertIntentado] = useState(false);
   const [modo, setModo] = useState<Modo>("cantidad");
   const [texto, setTexto] = useState("");
@@ -62,7 +65,7 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
   const falta = Math.max(partida.cantidad - partida.ejecutado, 0);
   const lectura = texto.trim() ? parseCantidadIngresada(texto, modo, partida.cantidad) : null;
   const seExcede = lectura?.ok && partida.ejecutado + lectura.cantidad > partida.cantidad;
-  const fotoBloqueada = insertIntentado || enviando;
+  const bloqueado = insertIntentado || enviando;
 
   function cambiarFoto(nueva: Foto | null) {
     if (insertIntentado) return;
@@ -161,8 +164,8 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
 
       <View style={estilos.grupo}>
         <View style={estilos.fila}>
-          <OpcionModo titulo={partida.unidad} activa={modo === "cantidad"} deshabilitada={enviando} onPress={() => setModo("cantidad")} />
-          <OpcionModo titulo="%" activa={modo === "porcentaje"} deshabilitada={enviando} onPress={() => setModo("porcentaje")} />
+          <OpcionModo titulo={partida.unidad} activa={modo === "cantidad"} deshabilitada={bloqueado} onPress={() => setModo("cantidad")} />
+          <OpcionModo titulo="%" activa={modo === "porcentaje"} deshabilitada={bloqueado} onPress={() => setModo("porcentaje")} />
         </View>
         <Text style={estilos.etiqueta}>{etiquetaCantidad}</Text>
         <TextInput
@@ -170,8 +173,8 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
           value={texto}
           onChangeText={setTexto}
           keyboardType="decimal-pad"
-          editable={!enviando}
-          style={[estilos.campo, estilos.campoCantidad, enviando && estilos.atenuado]}
+          editable={!bloqueado}
+          style={[estilos.campo, estilos.campoCantidad, bloqueado && estilos.atenuado]}
         />
         {modo === "porcentaje" && lectura?.ok ? (
           <Text style={estilos.texto}>{`= ${formatoCantidad(lectura.cantidad)} ${partida.unidad}`}</Text>
@@ -183,8 +186,8 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
 
       <View style={estilos.grupo}>
         <Text style={estilos.etiqueta}>Foto (opcional)</Text>
-        <Boton titulo="Tomar foto" variante="secundario" onPress={tomarFoto} deshabilitado={fotoBloqueada} />
-        <Boton titulo="Elegir de la galería" variante="secundario" onPress={elegirDeGaleria} deshabilitado={fotoBloqueada} />
+        <Boton titulo="Tomar foto" variante="secundario" onPress={tomarFoto} deshabilitado={bloqueado} />
+        <Boton titulo="Elegir de la galería" variante="secundario" onPress={elegirDeGaleria} deshabilitado={bloqueado} />
         {avisoCamara ? <Text style={estilos.aviso}>{avisoCamara}</Text> : null}
         {foto ? (
           <>
@@ -195,15 +198,8 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
               resizeMode="cover"
               style={estilos.miniatura}
             />
-            <Boton titulo="Quitar foto" variante="secundario" onPress={() => cambiarFoto(null)} deshabilitado={fotoBloqueada} />
+            <Boton titulo="Quitar foto" variante="secundario" onPress={() => cambiarFoto(null)} deshabilitado={bloqueado} />
           </>
-        ) : null}
-        {insertIntentado ? (
-          <Text style={estilos.texto}>
-            {foto
-              ? "La foto ya va con este reporte. Reintenta el envío."
-              : "Este reporte ya se intentó enviar sin foto. Reintenta el envío."}
-          </Text>
         ) : null}
       </View>
 
@@ -215,9 +211,9 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
           onChangeText={setComentario}
           multiline
           maxLength={1000}
-          editable={!enviando}
+          editable={!bloqueado}
           textAlignVertical="top"
-          style={[estilos.campo, estilos.campoComentario, enviando && estilos.atenuado]}
+          style={[estilos.campo, estilos.campoComentario, bloqueado && estilos.atenuado]}
         />
       </View>
 
@@ -226,6 +222,7 @@ export function FormularioReporte({ obraId, autorId, partida, alEnviar }: Props)
           {error}
         </Text>
       ) : null}
+      {insertIntentado ? <Text style={estilos.texto}>{NOTA_FIJO}</Text> : null}
 
       <Boton titulo={enviando ? "Enviando…" : fallo ? "Reintentar" : "Enviar reporte"} onPress={enviar} ocupado={enviando} />
     </ScrollView>

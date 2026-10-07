@@ -42,6 +42,8 @@ const FALLO_INSERT = {
   insertIntentado: true,
 };
 
+const NOTA_FIJO = "Este reporte ya se intentó enviar. Reintenta tal cual; si necesitas corregirlo, revisa Mis reportes después.";
+
 const BYTES_A = new Uint8Array([1, 1, 1]).buffer;
 const BYTES_B = new Uint8Array([2, 2, 2]).buffer;
 const foto = (uri: string) => ({ canceled: false, assets: [{ uri, width: 4032, height: 3024 }] });
@@ -210,11 +212,42 @@ describe("envío", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Algo falló. Reintenta.");
     expect(screen.getByRole("button", { name: "Elegir de la galería" })).toBeDisabled();
+    expect(campoCantidad()).toBeDisabled();
+    expect(campoComentario()).toBeDisabled();
+    expect(screen.getByText(NOTA_FIJO)).toBeOnTheScreen();
 
     await reintentar(user);
     const [, primero] = mockEnviarReporte.mock.calls[0];
     const [, segundo] = mockEnviarReporte.mock.calls[1];
     expect(segundo.id).toBe(primero.id);
+    expect(alEnviar).toHaveBeenCalledTimes(1);
+  });
+
+  it("si falló el insert (pudo llegar a la BD), bloquea cantidad, modo y comentario y reintenta con los mismos datos", async () => {
+    mockEnviarReporte.mockResolvedValueOnce({ ...FALLO_INSERT, fotoSubida: false }).mockResolvedValueOnce({ ok: true });
+    const { user, alEnviar } = await abrir();
+
+    await escribirCantidad(user, "12,5");
+    await user.type(campoComentario(), "Sector norte");
+    await enviar(user);
+    await screen.findByRole("alert");
+
+    // Si el primer insert llegó, un reintento con otros valores daría 23505 ("enviado") y la BD guardaría los viejos.
+    expect(campoCantidad()).toBeDisabled();
+    expect(campoComentario()).toBeDisabled();
+    expect(screen.getByRole("button", { name: "kg" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "%" })).toBeDisabled();
+    expect(screen.getByText(NOTA_FIJO)).toBeOnTheScreen();
+
+    await user.type(campoCantidad(), "9");
+    await user.press(screen.getByRole("button", { name: "%" }));
+    await user.type(campoComentario(), " y sur");
+    await reintentar(user);
+
+    const [, primero] = mockEnviarReporte.mock.calls[0];
+    const [, segundo] = mockEnviarReporte.mock.calls[1];
+    expect(segundo).toEqual(primero);
+    expect(segundo).toMatchObject({ id: "id-1", cantidad: 12.5, comentario: "Sector norte", foto: null });
     expect(alEnviar).toHaveBeenCalledTimes(1);
   });
 });
@@ -351,7 +384,7 @@ describe("foto", () => {
       expect(screen.getByRole("button", { name: "Tomar foto" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Elegir de la galería" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Quitar foto" })).toBeDisabled();
-      expect(screen.getByText("La foto ya va con este reporte. Reintenta el envío.")).toBeOnTheScreen();
+      expect(screen.getByText(NOTA_FIJO)).toBeOnTheScreen();
 
       await reintentar(user);
 
@@ -373,7 +406,7 @@ describe("foto", () => {
       await enviar(user);
       await screen.findByRole("alert");
 
-      expect(screen.getByText("Este reporte ya se intentó enviar sin foto. Reintenta el envío.")).toBeOnTheScreen();
+      expect(screen.getByText(NOTA_FIJO)).toBeOnTheScreen();
       expect(screen.getByRole("button", { name: "Tomar foto" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Elegir de la galería" })).toBeDisabled();
 

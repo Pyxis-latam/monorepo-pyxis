@@ -3,21 +3,24 @@ import userEvent from "@testing-library/user-event";
 import { FormularioReporte } from "./FormularioReporte";
 
 const enviarReporte = jest.fn();
+const prepararFoto = jest.fn();
 const push = jest.fn();
 jest.mock("@pyxis/ovalle-core/reportes/enviar", () => ({
   enviarReporte: (...a: unknown[]) => enviarReporte(...a),
   clienteReportesDesde: () => ({}),
 }));
 jest.mock("@/lib/supabase/navegador", () => ({ crearClienteNavegador: () => ({}) }));
-jest.mock("@/lib/fotos/preparar", () => ({ prepararFoto: async (f: File) => f }));
+jest.mock("@/lib/fotos/preparar", () => ({ prepararFoto: (...a: unknown[]) => prepararFoto(...a) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: jest.fn() }) }));
 
 const partida = { id: "p1", codigo: "1.1", descripcion: "Enfierradura losa P3", unidad: "kg", cantidad: 4200, ejecutado: 4000 };
+const NOTA_FIJO = "Este reporte ya se intentó enviar. Reintenta tal cual; si necesitas corregirlo, revisa Mis reportes después.";
 
 describe("FormularioReporte", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     enviarReporte.mockReset();
+    prepararFoto.mockReset().mockImplementation(async (f: File) => f);
   });
 
   it("muestra lo que falta y avisa si se pasa de lo presupuestado", async () => {
@@ -98,7 +101,7 @@ describe("FormularioReporte", () => {
       await screen.findByRole("alert");
 
       expect(screen.getByLabelText("Foto (opcional)")).toBeDisabled();
-      expect(screen.getByText("La foto ya va con este reporte. Reintenta el envío.")).toBeInTheDocument();
+      expect(screen.getByText(NOTA_FIJO)).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
       const [, primero, subida1] = enviarReporte.mock.calls[0];
@@ -106,6 +109,75 @@ describe("FormularioReporte", () => {
       expect(segundo.id).toBe(primero.id);
       expect(segundo.foto).toBe(vieja);
       expect([subida1, subida2]).toEqual([false, true]);
+    });
+  });
+
+  describe("tras un insert intentado (el reporte pudo llegar a la BD)", () => {
+    const FALLO_INSERT = { ok: false, mensaje: "No se pudo enviar el reporte. Revisa la conexión y reintenta.", fotoSubida: false, insertIntentado: true };
+
+    it("bloquea cantidad, modo y comentario, y el reintento manda el mismo id con los mismos datos", async () => {
+      enviarReporte.mockResolvedValueOnce(FALLO_INSERT).mockResolvedValueOnce({ ok: true });
+      render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
+      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "12,5");
+      await userEvent.type(screen.getByLabelText("Comentario (opcional)"), "Sector norte");
+      await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
+      await screen.findByRole("alert");
+
+      // Si el primer insert llegó, un reintento con otros valores daría 23505 ("enviado") y la BD guardaría los viejos.
+      expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeDisabled();
+      expect(screen.getByRole("button", { name: "kg" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "%" })).toBeDisabled();
+      expect(screen.getByLabelText("Comentario (opcional)")).toBeDisabled();
+      expect(screen.getByLabelText("Foto (opcional)")).toBeDisabled();
+      expect(screen.getByText(NOTA_FIJO)).toBeInTheDocument();
+
+      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "9");
+      await userEvent.click(screen.getByRole("button", { name: "%" }));
+      await userEvent.type(screen.getByLabelText("Comentario (opcional)"), " y sur");
+      await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+      const [, primero] = enviarReporte.mock.calls[0];
+      const [, segundo] = enviarReporte.mock.calls[1];
+      expect(segundo).toEqual(primero);
+      expect(segundo).toMatchObject({ cantidad: 12.5, comentario: "Sector norte", foto: null });
+      expect(push).toHaveBeenCalledWith("/terreno/obras/o1?enviado=1");
+    });
+
+    it("si enviarReporte lanza una excepción también deja fijo el reporte (el insert pudo salir)", async () => {
+      const foto = new File(["a"], "a.jpg", { type: "image/jpeg" });
+      enviarReporte.mockRejectedValueOnce(new Error("Failed to fetch")).mockResolvedValueOnce({ ok: true });
+      render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
+      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.upload(screen.getByLabelText("Foto (opcional)"), foto);
+      await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Failed to fetch");
+      expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeDisabled();
+      expect(screen.getByRole("button", { name: "%" })).toBeDisabled();
+      expect(screen.getByLabelText("Comentario (opcional)")).toBeDisabled();
+      expect(screen.getByLabelText("Foto (opcional)")).toBeDisabled();
+      expect(screen.getByText(NOTA_FIJO)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+      const [, primero] = enviarReporte.mock.calls[0];
+      const [, segundo] = enviarReporte.mock.calls[1];
+      expect(segundo.id).toBe(primero.id);
+      expect(segundo.foto).toBe(foto);
+      expect(segundo.cantidad).toBe(5);
+    });
+
+    it("si falla preparar la foto (aún no se envió nada), no deja fijo el reporte", async () => {
+      prepararFoto.mockRejectedValueOnce(new Error("La foto es muy pesada y no se pudo reducir. Prueba con otra."));
+      render(<FormularioReporte obraId="o1" autorId="u1" partida={partida} />);
+      await userEvent.type(screen.getByLabelText("Cantidad ejecutada (kg)"), "5");
+      await userEvent.upload(screen.getByLabelText("Foto (opcional)"), new File(["a"], "a.jpg", { type: "image/jpeg" }));
+      await userEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("La foto es muy pesada");
+      expect(enviarReporte).not.toHaveBeenCalled();
+      expect(screen.getByLabelText("Foto (opcional)")).toBeEnabled();
+      expect(screen.getByLabelText("Cantidad ejecutada (kg)")).toBeEnabled();
+      expect(screen.queryByText(NOTA_FIJO)).not.toBeInTheDocument();
     });
   });
 

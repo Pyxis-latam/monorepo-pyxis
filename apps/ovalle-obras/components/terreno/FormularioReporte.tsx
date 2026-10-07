@@ -11,12 +11,15 @@ import { clienteReportesDesde, enviarReporte } from "@pyxis/ovalle-core/reportes
 
 type Partida = { id: string; codigo: string; descripcion: string; unidad: string; cantidad: number; ejecutado: number };
 
+const NOTA_FIJO = "Este reporte ya se intentó enviar. Reintenta tal cual; si necesitas corregirlo, revisa Mis reportes después.";
+
 export function FormularioReporte({ obraId, autorId, partida }: { obraId: string; autorId: string; partida: Partida }) {
   const router = useRouter();
   // Un id por reporte: los reintentos reutilizan el mismo y la BD no duplica.
   const [id, setId] = useState(nuevoIdReporte);
   const fotoSubida = useRef(false);
-  // Tras un insert intentado el reporte pudo llegar a la BD (solo se perdió la respuesta): desde ahí el id y la foto quedan fijos.
+  // Tras un insert intentado el reporte pudo llegar a la BD (solo se perdió la respuesta): desde ahí el id, la foto y los
+  // valores quedan fijos. Un reintento con otros valores daría 23505 ("enviado") y la BD conservaría los primeros.
   const [insertIntentado, setInsertIntentado] = useState(false);
   const [modo, setModo] = useState<"cantidad" | "porcentaje">("cantidad");
   const [texto, setTexto] = useState("");
@@ -49,8 +52,10 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
     }
     setEnviando(true);
     setError(null);
+    let envioIniciado = false;
     try {
       const blob = foto ? await prepararFoto(foto) : null;
+      envioIniciado = true;
       const resultado = await enviarReporte(
         clienteReportesDesde(crearClienteNavegador()),
         { id, obraId, partidaId: partida.id, autorId, cantidad: r.cantidad, comentario, foto: blob },
@@ -66,6 +71,9 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
       setError(resultado.mensaje);
       setFallo(true);
     } catch (err) {
+      // Si `enviarReporte` lanzó no sabemos hasta dónde llegó: el insert pudo salir, así que el reporte queda fijo.
+      // (Si falló preparar la foto aún no se envió nada y todo se puede cambiar.)
+      if (envioIniciado) setInsertIntentado(true);
       setError(err instanceof Error ? err.message : "Algo falló. Reintenta.");
       setFallo(true);
     } finally {
@@ -84,8 +92,8 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
 
         <div className="space-y-2">
           <div className="flex gap-2">
-            <button type="button" onClick={() => setModo("cantidad")} className={`flex-1 rounded-lg py-2 ${modo === "cantidad" ? "bg-obra-fg text-white" : "bg-white"}`}>{partida.unidad}</button>
-            <button type="button" onClick={() => setModo("porcentaje")} className={`flex-1 rounded-lg py-2 ${modo === "porcentaje" ? "bg-obra-fg text-white" : "bg-white"}`}>%</button>
+            <button type="button" disabled={insertIntentado} onClick={() => setModo("cantidad")} className={`flex-1 rounded-lg py-2 disabled:opacity-60 ${modo === "cantidad" ? "bg-obra-fg text-white" : "bg-white"}`}>{partida.unidad}</button>
+            <button type="button" disabled={insertIntentado} onClick={() => setModo("porcentaje")} className={`flex-1 rounded-lg py-2 disabled:opacity-60 ${modo === "porcentaje" ? "bg-obra-fg text-white" : "bg-white"}`}>%</button>
           </div>
           <label className="block text-sm font-medium" htmlFor="cantidad">
             {modo === "cantidad" ? `Cantidad ejecutada (${partida.unidad})` : "Porcentaje ejecutado"}
@@ -95,7 +103,9 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
             inputMode="decimal"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            className="w-full rounded-lg border border-obra-line bg-white px-3 py-3 text-2xl"
+            disabled={insertIntentado}
+            aria-describedby={insertIntentado ? "reporte-fijo" : undefined}
+            className="w-full rounded-lg border border-obra-line bg-white px-3 py-3 text-2xl disabled:opacity-60"
           />
           {modo === "porcentaje" && lectura?.ok && <p className="text-sm">= {formatoCantidad(lectura.cantidad)} {partida.unidad}</p>}
           {seExcede && <p className="text-sm text-obra-warn">Con este reporte se supera lo presupuestado. Puedes enviarlo igual.</p>}
@@ -109,25 +119,34 @@ export function FormularioReporte({ obraId, autorId, partida }: { obraId: string
               accept="image/*"
               capture="environment"
               disabled={insertIntentado}
-              aria-describedby={insertIntentado ? "foto-fija" : undefined}
+              aria-describedby={insertIntentado ? "reporte-fijo" : undefined}
               onChange={(e) => elegirFoto(e.target.files?.[0] ?? null)}
               className="block w-full disabled:opacity-60"
             />
           </label>
-          {insertIntentado && (
-            <p id="foto-fija" className="text-sm text-gray-600">
-              {foto ? "La foto ya va con este reporte. Reintenta el envío." : "Este reporte ya se intentó enviar sin foto. Reintenta el envío."}
-            </p>
-          )}
         </div>
 
         <label className="block space-y-2" htmlFor="comentario">
           <span className="text-sm font-medium">Comentario (opcional)</span>
-          <textarea id="comentario" maxLength={1000} rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} className="w-full rounded-lg border border-obra-line bg-white px-3 py-2" />
+          <textarea
+            id="comentario"
+            maxLength={1000}
+            rows={3}
+            value={comentario}
+            onChange={(e) => setComentario(e.target.value)}
+            disabled={insertIntentado}
+            aria-describedby={insertIntentado ? "reporte-fijo" : undefined}
+            className="w-full rounded-lg border border-obra-line bg-white px-3 py-2 disabled:opacity-60"
+          />
         </label>
       </fieldset>
 
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-obra-warn">{error}</p>}
+      {insertIntentado && (
+        <p id="reporte-fijo" className="text-sm text-gray-600">
+          {NOTA_FIJO}
+        </p>
+      )}
 
       <button disabled={enviando} className="w-full rounded-lg bg-obra-accent py-4 text-lg font-semibold text-white disabled:opacity-60">
         {enviando ? "Enviando…" : fallo ? "Reintentar" : "Enviar reporte"}
